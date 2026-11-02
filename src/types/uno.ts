@@ -38,7 +38,7 @@ export interface PlayerPrivateInfo extends PlayerPublicInfo {
   hand: Card[];
 }
 
-export type GameStatus = 'waiting' | 'in_progress' | 'round_over' | 'game_over';
+export type GameStatus = 'waiting' | 'in_progress' | 'round_over' | 'game_over' | 'aborted';
 export type TurnDirection = 1 | -1; // 1 = clockwise, -1 = counter-clockwise
 
 export interface WildChallengeState {
@@ -111,6 +111,16 @@ export interface ClientGameState {
     playerId: string;
     playerName: string;
     finalScore: number;
+  } | null;
+  abortInfo?: {
+    abortedBy: string;
+    reason: string;
+  } | null;
+  disconnectedPlayer?: {
+    id: string;
+    name: string;
+    disconnectedAt: number;
+    isTurnPlayer: boolean;
   } | null;
   logs: GameLogEntry[];
 }

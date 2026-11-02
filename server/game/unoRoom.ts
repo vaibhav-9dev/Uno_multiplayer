@@ -37,6 +37,8 @@ export class UnoRoom {
 
   public roundWinner: ClientGameState['roundWinner'] = null;
   public gameWinner: ClientGameState['gameWinner'] = null;
+  public abortInfo: ClientGameState['abortInfo'] = null;
+  public disconnectedPlayer: ClientGameState['disconnectedPlayer'] = null;
   public logs: GameLogEntry[] = [];
   public lastPlayTimestamp: number = Date.now();
   public createdAt: number = Date.now();
@@ -82,7 +84,10 @@ export class UnoRoom {
       existing.isConnected = true;
       existing.name = name || existing.name;
       existing.avatar = avatar || existing.avatar;
-      this.addLog('system', `${existing.name} reconnected.`);
+      if (this.disconnectedPlayer && this.disconnectedPlayer.id === existing.id) {
+        this.disconnectedPlayer = null;
+      }
+      this.addLog('system', `✅ ${existing.name} reconnected!`);
       return true;
     }
 
@@ -125,8 +130,37 @@ export class UnoRoom {
         this.addLog('system', `${this.players[0].name} is now the host.`);
       }
     } else {
-      this.addLog('system', `${player.name} disconnected.`);
+      const isTurn = this.players[this.currentTurnIndex]?.id === playerId;
+      this.disconnectedPlayer = {
+        id: player.id,
+        name: player.name,
+        disconnectedAt: Date.now(),
+        isTurnPlayer: isTurn,
+      };
+      this.addLog('system', `⚠️ ${player.name} lost connection. Waiting for reconnection...`);
     }
+  }
+
+  public abortGame(abortedById: string, reason?: string): boolean {
+    const player = this.players.find((p) => p.id === abortedById);
+    this.status = 'aborted';
+    this.abortInfo = {
+      abortedBy: player?.name || 'Host',
+      reason: reason || 'Match was aborted by player request',
+    };
+    this.addLog('system', `🛑 MATCH ABORTED by ${this.abortInfo.abortedBy}. (${this.abortInfo.reason})`);
+    return true;
+  }
+
+  public skipDisconnectedTurn(requesterId: string): boolean {
+    const currentTurnPlayer = this.players[this.currentTurnIndex];
+    if (!currentTurnPlayer || currentTurnPlayer.isConnected) {
+      return false;
+    }
+    const requester = this.players.find((p) => p.id === requesterId);
+    this.addLog('system', `⏩ ${requester?.name || 'Player'} skipped turn for disconnected ${currentTurnPlayer.name}.`);
+    this.advanceTurn(1);
+    return true;
   }
 
   public setReady(playerId: string, isReady: boolean): void {
@@ -647,6 +681,8 @@ export class UnoRoom {
       canCatchUnoTarget,
       roundWinner: this.roundWinner,
       gameWinner: this.gameWinner,
+      abortInfo: this.abortInfo,
+      disconnectedPlayer: this.disconnectedPlayer,
       logs: [...this.logs],
     };
   }

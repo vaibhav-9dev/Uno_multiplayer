@@ -50,7 +50,9 @@ export const OpponentSeat: React.FC<OpponentSeatProps> = ({
         <div className="relative">
           <div
             className={`w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center text-xl md:text-2xl border-2 transition-colors ${
-              isActiveTurn
+              !player.isConnected
+                ? 'bg-rose-950/60 border-rose-500 opacity-60'
+                : isActiveTurn
                 ? 'bg-amber-500/20 border-amber-400'
                 : 'bg-neutral-800 border-neutral-600'
             }`}
@@ -59,8 +61,8 @@ export const OpponentSeat: React.FC<OpponentSeatProps> = ({
           </div>
 
           {!player.isConnected && (
-            <div className="absolute -bottom-1 -right-1 p-0.5 rounded-full bg-rose-600 text-white" title="Disconnected">
-              <WifiOff className="w-3 h-3" />
+            <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-rose-600 text-white shadow-md animate-pulse" title="Player Disconnected">
+              <WifiOff className="w-3.5 h-3.5" />
             </div>
           )}
         </div>
@@ -79,10 +81,18 @@ export const OpponentSeat: React.FC<OpponentSeatProps> = ({
           </div>
 
           <div className="flex items-center gap-2 text-[11px] text-neutral-300">
-            <span className="font-bold text-white bg-neutral-800/80 px-1.5 py-0.5 rounded text-[10px] border border-neutral-700">
-              {player.cardCount} {player.cardCount === 1 ? 'card' : 'cards'}
-            </span>
-            <span className="text-neutral-400 text-[10px]">{player.totalScore} pts</span>
+            {!player.isConnected ? (
+              <span className="font-bold text-rose-400 text-[10px] animate-pulse">
+                Disconnected
+              </span>
+            ) : (
+              <>
+                <span className="font-bold text-white bg-neutral-800/80 px-1.5 py-0.5 rounded text-[10px] border border-neutral-700">
+                  {player.cardCount} {player.cardCount === 1 ? 'card' : 'cards'}
+                </span>
+                <span className="text-neutral-400 text-[10px]">{player.totalScore} pts</span>
+              </>
+            )}
           </div>
         </div>
 

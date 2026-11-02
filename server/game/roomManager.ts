@@ -47,7 +47,16 @@ export class RoomManager {
   public getRoomBySession(sessionToken: string): UnoRoom | undefined {
     const code = this.sessionToRoom.get(sessionToken);
     if (!code) return undefined;
-    return this.rooms.get(code);
+    const room = this.rooms.get(code);
+    if (!room || room.status === 'game_over' || room.status === 'aborted') {
+      this.sessionToRoom.delete(sessionToken);
+      return undefined;
+    }
+    return room;
+  }
+
+  public removeSession(sessionToken: string): void {
+    this.sessionToRoom.delete(sessionToken);
   }
 
   public joinRoom(

@@ -63,16 +63,31 @@ io.on('connection', (socket: Socket) => {
   let sessionToken: string | null = null;
 
   // Reconnection or initial session check
-  socket.on('room:reconnect', (data: { sessionToken: string; playerName?: string; avatar?: string }, callback) => {
+  socket.on('room:reconnect', (data: { sessionToken: string; roomCode?: string; playerName?: string; avatar?: string }, callback) => {
     sessionToken = data.sessionToken;
-    const room = roomManager.getRoomBySession(sessionToken);
+    let room: UnoRoom | undefined;
+
+    if (data.roomCode) {
+      room = roomManager.getRoom(data.roomCode);
+    } else {
+      room = roomManager.getRoomBySession(sessionToken);
+    }
+
     if (!room) {
-      return callback?.({ success: false, message: 'No active session found' });
+      if (sessionToken) roomManager.removeSession(sessionToken);
+      return callback?.({ success: false, message: 'No active room found' });
     }
 
     const player = room.players.find((p) => p.sessionToken === sessionToken);
     if (!player) {
+      if (sessionToken) roomManager.removeSession(sessionToken);
       return callback?.({ success: false, message: 'Player session expired' });
+    }
+
+    // Do not trap players in aborted or finished games on reload
+    if (room.status === 'aborted' || room.status === 'game_over') {
+      if (sessionToken) roomManager.removeSession(sessionToken);
+      return callback?.({ success: false, message: 'Previous game has finished' });
     }
 
     // Rebind player id to new socket id
@@ -84,8 +99,18 @@ io.on('connection', (socket: Socket) => {
     currentRoomCode = room.roomCode;
     socket.join(room.roomCode);
 
-    room.addLog('system', `${player.name} reconnected to seat.`);
+    if (room.disconnectedPlayer && room.disconnectedPlayer.id === player.id) {
+      room.disconnectedPlayer = null;
+    }
+
+    room.addLog('system', `✅ ${player.name} reconnected to their seat.`);
     broadcastRoomState(room);
+
+    // Notify all players that this player returned
+    io.to(room.roomCode).emit('game:player-reconnected', {
+      playerId: player.id,
+      playerName: player.name,
+    });
 
     callback?.({ success: true, roomCode: room.roomCode });
   });
@@ -297,14 +322,55 @@ io.on('connection', (socket: Socket) => {
     });
   });
 
+  // Abort match
+  socket.on('game:abort', (data: { reason?: string }) => {
+    if (!currentRoomCode) return;
+    const room = roomManager.getRoom(currentRoomCode);
+    if (!room) return;
+
+    const player = room.players.find((p) => p.id === socket.id);
+    if (!player) return;
+
+    room.abortGame(socket.id, data?.reason);
+    broadcastRoomState(room);
+    io.to(room.roomCode).emit('game:sound', { sound: 'penalty' });
+    io.to(room.roomCode).emit('game:aborted', {
+      abortedBy: player.name,
+      reason: data?.reason || 'Player requested to abort the match.',
+    });
+  });
+
+  // Skip turn for disconnected player
+  socket.on('game:skip-turn', () => {
+    if (!currentRoomCode) return;
+    const room = roomManager.getRoom(currentRoomCode);
+    if (!room) return;
+
+    const success = room.skipDisconnectedTurn(socket.id);
+    if (success) {
+      broadcastRoomState(room);
+      io.to(room.roomCode).emit('game:sound', { sound: 'skip' });
+    }
+  });
+
   // Leave room
   socket.on('room:leave', () => {
+    if (sessionToken) {
+      roomManager.removeSession(sessionToken);
+    }
     if (!currentRoomCode) return;
     const room = roomManager.getRoom(currentRoomCode);
     if (room) {
+      const player = room.players.find((p) => p.id === socket.id);
       room.removePlayer(socket.id);
       socket.leave(room.roomCode);
       broadcastRoomState(room);
+      if (player) {
+        io.to(room.roomCode).emit('game:player-dropped', {
+          playerId: player.id,
+          playerName: player.name,
+        });
+      }
     }
     currentRoomCode = null;
   });
@@ -314,8 +380,16 @@ io.on('connection', (socket: Socket) => {
     if (currentRoomCode) {
       const room = roomManager.getRoom(currentRoomCode);
       if (room) {
+        const player = room.players.find((p) => p.id === socket.id);
         room.removePlayer(socket.id);
         broadcastRoomState(room);
+        if (player) {
+          io.to(room.roomCode).emit('game:player-dropped', {
+            playerId: player.id,
+            playerName: player.name,
+          });
+          io.to(room.roomCode).emit('game:sound', { sound: 'penalty' });
+        }
       }
     }
   });

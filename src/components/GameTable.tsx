@@ -24,6 +24,10 @@ import {
   MessageSquare,
   ChevronDown,
   ChevronUp,
+  AlertTriangle,
+  StopCircle,
+  FastForward,
+  Home,
 } from 'lucide-react';
 
 interface GameTableProps {
@@ -51,18 +55,32 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
   const [copiedCode, setCopiedCode] = useState(false);
   const [pendingWildCard, setPendingWildCard] = useState<Card | null>(null);
   const [showLogs, setShowLogs] = useState(false);
+  const [showAbortConfirm, setShowAbortConfirm] = useState(false);
   const [unoAlertText, setUnoAlertText] = useState<string | null>(null);
   const [recentChatReaction, setRecentChatReaction] = useState<{ name: string; text: string } | null>(null);
+  const [dropSeconds, setDropSeconds] = useState(0);
 
   const isMyTurn = gameState.activePlayerId === gameState.myPlayerId;
   const isHost = gameState.hostId === gameState.myPlayerId;
   const me = gameState.players.find((p) => p.id === gameState.myPlayerId);
 
   // Filter out self to get opponents list
-  const myIndex = gameState.players.findIndex((p) => p.id === gameState.myPlayerId);
   const opponents = gameState.players
     .map((p, idx) => ({ player: p, originalIndex: idx }))
     .filter((item) => item.player.id !== gameState.myPlayerId);
+
+  // Timer for disconnected player
+  useEffect(() => {
+    if (!gameState.disconnectedPlayer) {
+      setDropSeconds(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - gameState.disconnectedPlayer!.disconnectedAt) / 1000);
+      setDropSeconds(elapsed);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [gameState.disconnectedPlayer]);
 
   // Copy room code or direct link
   const handleCopyRoom = () => {
@@ -83,8 +101,8 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
   useEffect(() => {
     const socket = socketClient.socket;
     const handleUnoAlert = (data: { playerName: string }) => {
-      setUnoAlertText(`${data.playerName.toUpperCase()} CALLED UNO! 🔥`);
-      setTimeout(() => setUnoAlertText(null), 3000);
+      setUnoAlertText(`${data.playerName.toUpperCase()} SHOUTED UNO! 🔥`);
+      setTimeout(() => setUnoAlertText(null), 3500);
     };
 
     const handleChat = (data: { playerName: string; message?: string; emote?: string }) => {
@@ -110,7 +128,6 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
     if (gameState.activeChallenge) return;
 
     if (card.color === 'wild') {
-      // Prompt user to pick color
       soundService.play('click');
       setPendingWildCard(card);
     } else {
@@ -137,7 +154,14 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
     socketClient.sendChat(undefined, emote);
   };
 
-  // Layout opponents based on count (1 opponent -> top; 2 opponents -> left & right; 3 opponents -> left, top, right)
+  // Abort match confirmation
+  const handleConfirmAbort = () => {
+    setShowAbortConfirm(false);
+    soundService.play('click');
+    socketClient.abortMatch('Match was aborted by player request.');
+  };
+
+  // Layout opponents based on count
   const renderOpponents = () => {
     if (opponents.length === 1) {
       return (
@@ -205,10 +229,10 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-900/40 via-neutral-950/80 to-black pointer-events-none" />
 
       {/* Top Header Bar */}
-      <header className="relative z-20 flex items-center justify-between px-3 md:px-6 py-2.5 bg-neutral-950/80 backdrop-blur-md border-b border-neutral-800">
+      <header className="relative z-20 flex items-center justify-between px-3 md:px-6 py-2.5 bg-neutral-950/85 backdrop-blur-md border-b border-neutral-800 shadow-md">
         {/* Left: Room Code & Link */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-700">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-700 shadow-inner">
             <span className="text-xs text-neutral-400 font-bold uppercase">Room:</span>
             <span className="text-sm font-black text-amber-400 tracking-wider font-mono">
               {gameState.roomCode}
@@ -223,7 +247,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
           </div>
 
           <div className="hidden sm:flex items-center gap-2 text-xs text-neutral-400">
-            <span className="px-2 py-1 rounded-lg bg-neutral-900 border border-neutral-800">
+            <span className="px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-800">
               {gameState.settings.isSingleRound ? 'Single Round' : `Target: ${gameState.settings.targetScore} pts`}
             </span>
           </div>
@@ -231,22 +255,22 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
 
         {/* Center: Turn Direction Indicator */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-900/90 border border-neutral-700 text-xs font-bold text-neutral-200">
+          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-neutral-900/90 border border-neutral-700 text-xs font-bold text-neutral-200 shadow-sm">
             {gameState.turnDirection === 1 ? (
               <>
-                <RotateCw className="w-3.5 h-3.5 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
+                <RotateCw className="w-4 h-4 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
                 <span className="hidden md:inline">Clockwise</span>
               </>
             ) : (
               <>
-                <RotateCcw className="w-3.5 h-3.5 text-blue-400 animate-spin" style={{ animationDuration: '6s' }} />
+                <RotateCcw className="w-4 h-4 text-blue-400 animate-spin" style={{ animationDuration: '6s' }} />
                 <span className="hidden md:inline">Counter-Clockwise</span>
               </>
             )}
           </div>
         </div>
 
-        {/* Right: Sound, Rules, Leave */}
+        {/* Right: Sound, Rules, Abort, Leave */}
         <div className="flex items-center gap-1.5 md:gap-2">
           <button
             onClick={handleToggleMute}
@@ -267,6 +291,21 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
             <HelpCircle className="w-4 h-4 text-amber-400" />
           </button>
 
+          {/* Abort Match Button (Available during active play) */}
+          {(gameState.status === 'in_progress' || gameState.status === 'round_over') && (
+            <button
+              onClick={() => {
+                soundService.play('click');
+                setShowAbortConfirm(true);
+              }}
+              className="px-2.5 py-2 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-600/80 text-amber-300 hover:text-amber-100 transition flex items-center gap-1 text-xs font-bold shadow-sm"
+              title="Abort Match"
+            >
+              <StopCircle className="w-4 h-4 text-amber-400" />
+              <span className="hidden sm:inline">Abort Match</span>
+            </button>
+          )}
+
           <button
             onClick={() => {
               soundService.play('click');
@@ -279,6 +318,44 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
           </button>
         </div>
       </header>
+
+      {/* Disconnected Player Alert Banner */}
+      {gameState.disconnectedPlayer && gameState.status === 'in_progress' && (
+        <div className="relative z-30 w-full bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 text-black px-4 py-2.5 shadow-xl flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2 font-bold text-xs md:text-sm">
+            <AlertTriangle className="w-5 h-5 text-black shrink-0 animate-bounce" />
+            <span>
+              <strong>{gameState.disconnectedPlayer.name}</strong> lost connection ({dropSeconds}s ago). Waiting for them to reconnect...
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {gameState.disconnectedPlayer.isTurnPlayer && (
+              <button
+                onClick={() => {
+                  soundService.play('click');
+                  socketClient.skipTurn();
+                }}
+                className="px-3 py-1 rounded-xl bg-black text-amber-300 hover:bg-neutral-900 text-xs font-black transition flex items-center gap-1 shadow-md"
+              >
+                <FastForward className="w-3.5 h-3.5" />
+                Skip Turn
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                soundService.play('click');
+                setShowAbortConfirm(true);
+              }}
+              className="px-3 py-1 rounded-xl bg-red-950 text-red-200 hover:bg-red-900 text-xs font-black transition flex items-center gap-1 shadow-md border border-red-700"
+            >
+              <StopCircle className="w-3.5 h-3.5" />
+              Abort Match
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Floating Big UNO Alert Notification */}
       {unoAlertText && (
@@ -319,7 +396,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
             {/* Room Code Card */}
             <div
               onClick={handleCopyRoom}
-              className="group cursor-pointer flex items-center justify-between p-4 rounded-2xl bg-neutral-950 border border-neutral-800 hover:border-amber-400/60 transition mb-6"
+              className="group cursor-pointer flex items-center justify-between p-4 rounded-2xl bg-neutral-950 border border-neutral-800 hover:border-amber-400/60 transition mb-6 shadow-inner"
             >
               <div className="text-left">
                 <span className="text-xs text-neutral-500 block uppercase font-bold">Room Code</span>
@@ -327,9 +404,9 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                   {gameState.roomCode}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-800 text-xs font-bold text-neutral-300 group-hover:bg-amber-400 group-hover:text-black transition">
+              <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neutral-800 text-xs font-bold text-neutral-300 group-hover:bg-amber-400 group-hover:text-black transition shadow-sm">
                 {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedCode ? 'Copied!' : 'Copy Link'}</span>
+                <span>{copiedCode ? 'Copied Link!' : 'Copy Invite Link'}</span>
               </div>
             </div>
 
@@ -344,9 +421,9 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                 return (
                   <div
                     key={p.id}
-                    className={`flex items-center justify-between p-3 rounded-xl border ${
+                    className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
                       isCurrentMe
-                        ? 'bg-neutral-800/80 border-amber-400/50'
+                        ? 'bg-neutral-800/80 border-amber-400/50 shadow-md'
                         : 'bg-neutral-950/60 border-neutral-800'
                     }`}
                   >
@@ -566,7 +643,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                   </button>
                 ) : (
                   /* Emote reaction bar */
-                  <div className="flex items-center gap-1 bg-neutral-900/80 p-1 rounded-2xl border border-neutral-800">
+                  <div className="flex items-center gap-1 bg-neutral-900/80 p-1 rounded-2xl border border-neutral-800 shadow-md">
                     {['🔥', '🤝', '😱', '😂', '🤔'].map((emoji) => (
                       <button
                         key={emoji}
@@ -608,7 +685,6 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                   <div className="text-sm text-neutral-400 italic">No cards in hand.</div>
                 ) : (
                   gameState.myHand.map((card, index) => {
-                    // Check if card is playable
                     const topDiscard = gameState.topDiscard;
                     const activeColor = gameState.activeColor;
                     const isPlayable = Boolean(
@@ -620,7 +696,6 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                         card.value === topDiscard.value)
                     );
 
-                    // Dynamic fan rotation and spacing
                     const total = gameState.myHand.length;
                     const spreadAngle = total > 1 ? Math.min(4, 30 / total) : 0;
                     const angle = (index - (total - 1) / 2) * spreadAngle;
@@ -652,7 +727,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
             {/* Player Status Badge */}
             <div className="flex items-center gap-3 text-xs text-neutral-400 mt-1">
               <span className="font-bold text-white flex items-center gap-1">
-                Your Hand: <span className="text-amber-400">{gameState.myHand.length} cards</span>
+                Your Hand: <span className="text-amber-400 font-bold">{gameState.myHand.length} cards</span>
               </span>
               <span>•</span>
               <span>Total Points: <strong className="text-white">{me?.totalScore || 0}</strong></span>
@@ -710,13 +785,81 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
         )}
       </div>
 
-      {/* Modals */}
+      {/* MODALS */}
+
+      {/* Abort Confirmation Dialog */}
+      {showAbortConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="w-full max-w-md rounded-3xl bg-neutral-900 border-2 border-red-500/80 p-6 md:p-8 shadow-2xl text-white text-center">
+            <div className="w-14 h-14 rounded-2xl bg-red-500/20 border border-red-500 text-red-400 mx-auto mb-4 flex items-center justify-center">
+              <StopCircle className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl md:text-2xl font-black uppercase tracking-wider text-red-400 mb-2">
+              Abort Match?
+            </h3>
+            <p className="text-xs md:text-sm text-neutral-300 mb-6">
+              Are you sure you want to abort the match? The game will immediately end for all players and everyone will return to the lobby.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowAbortConfirm(false)}
+                className="flex-1 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-bold text-xs md:text-sm transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAbort}
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs md:text-sm shadow-lg transition"
+              >
+                Yes, Abort Match
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Match Aborted Banner / Dialog */}
+      {gameState.status === 'aborted' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="w-full max-w-md rounded-3xl bg-neutral-900 border-2 border-amber-500/80 p-6 md:p-8 shadow-2xl text-white text-center">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500 text-amber-400 mx-auto mb-4 flex items-center justify-center">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            <h3 className="text-2xl font-black uppercase tracking-wider text-amber-400 mb-2">
+              Match Aborted
+            </h3>
+            <p className="text-sm text-neutral-200 mb-2">
+              {gameState.abortInfo?.abortedBy ? (
+                <>Aborted by <strong className="text-white">{gameState.abortInfo.abortedBy}</strong></>
+              ) : (
+                'The match was ended early.'
+              )}
+            </p>
+            <p className="text-xs text-neutral-400 mb-6">
+              {gameState.abortInfo?.reason || 'Player disconnected or requested to abort.'}
+            </p>
+            <button
+              onClick={() => {
+                soundService.play('click');
+                onLeaveRoom();
+              }}
+              className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-sm uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2"
+            >
+              <Home className="w-4 h-4" />
+              <span>Return to Lobby</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Color Picker Modal */}
       <ColorPickerModal
         isOpen={pendingWildCard !== null}
         onSelectColor={handleSelectColor}
         title={pendingWildCard?.value === 'wild4' ? 'Wild Draw Four Color' : 'Wild Color'}
       />
 
+      {/* Challenge Modal */}
       {gameState.activeChallenge && gameState.activeChallenge.targetPlayerId === gameState.myPlayerId && (
         <ChallengeModal
           challenge={gameState.activeChallenge}
@@ -724,12 +867,14 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
         />
       )}
 
+      {/* Scoreboard Modal */}
       <ScoreboardModal
         gameState={gameState}
         onNextRound={() => socketClient.nextRound()}
         onRestartMatch={() => socketClient.startGame()}
       />
 
+      {/* How to Play Modal */}
       <HowToPlayModal isOpen={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
     </div>
   );

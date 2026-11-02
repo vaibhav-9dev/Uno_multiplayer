@@ -1,14 +1,28 @@
 import { io, Socket } from 'socket.io-client';
 import { ActiveColor } from '../types/uno.ts';
 
-// Get or create unique persistent session token
+// Get or create unique persistent session token per browser tab
 export function getSessionToken(): string {
-  let token = localStorage.getItem('uno_session_token');
+  let token = sessionStorage.getItem('uno_session_token');
   if (!token) {
+    // Generate fresh session token for this browser tab
     token = 'usr_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
-    localStorage.setItem('uno_session_token', token);
+    sessionStorage.setItem('uno_session_token', token);
   }
   return token;
+}
+
+// Track active room for current tab
+export function getActiveRoom(): string | null {
+  return sessionStorage.getItem('uno_active_room');
+}
+
+export function setActiveRoom(roomCode: string | null): void {
+  if (roomCode) {
+    sessionStorage.setItem('uno_active_room', roomCode);
+  } else {
+    sessionStorage.removeItem('uno_active_room');
+  }
 }
 
 // Determine backend URL (supports Vercel frontend pointing to persistent server)
@@ -46,7 +60,12 @@ export const socketClient = {
           sessionToken: getSessionToken(),
           settings,
         },
-        (res: any) => resolve(res)
+        (res: any) => {
+          if (res.success && res.roomCode) {
+            setActiveRoom(res.roomCode);
+          }
+          resolve(res);
+        }
       );
     });
   },
@@ -61,7 +80,12 @@ export const socketClient = {
           avatar,
           sessionToken: getSessionToken(),
         },
-        (res: any) => resolve(res)
+        (res: any) => {
+          if (res.success && res.roomCode) {
+            setActiveRoom(res.roomCode);
+          }
+          resolve(res);
+        }
       );
     });
   },
@@ -75,21 +99,32 @@ export const socketClient = {
           avatar,
           sessionToken: getSessionToken(),
         },
-        (res: any) => resolve(res)
+        (res: any) => {
+          if (res.success && res.roomCode) {
+            setActiveRoom(res.roomCode);
+          }
+          resolve(res);
+        }
       );
     });
   },
 
-  reconnect: (playerName?: string, avatar?: string): Promise<{ success: boolean; roomCode?: string }> => {
+  reconnect: (roomCode?: string, playerName?: string, avatar?: string): Promise<{ success: boolean; roomCode?: string }> => {
     return new Promise((resolve) => {
       getSocket().emit(
         'room:reconnect',
         {
           sessionToken: getSessionToken(),
+          roomCode: roomCode || getActiveRoom() || undefined,
           playerName,
           avatar,
         },
-        (res: any) => resolve(res)
+        (res: any) => {
+          if (!res?.success) {
+            setActiveRoom(null);
+          }
+          resolve(res);
+        }
       );
     });
   },
@@ -146,7 +181,16 @@ export const socketClient = {
     getSocket().emit('game:send-chat', { message, emote });
   },
 
+  abortMatch: (reason?: string) => {
+    getSocket().emit('game:abort', { reason });
+  },
+
+  skipTurn: () => {
+    getSocket().emit('game:skip-turn');
+  },
+
   leaveRoom: () => {
+    setActiveRoom(null);
     getSocket().emit('room:leave');
   },
 };
