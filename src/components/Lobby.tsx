@@ -93,7 +93,7 @@ export const Lobby: React.FC<LobbyProps> = ({ onEnterRoom }) => {
   const fetchPublicRooms = async () => {
     try {
       setLoadingRooms(true);
-      const res = await fetch('/api/public-rooms');
+      const res = await fetch(`${(import.meta as any).env?.VITE_BACKEND_URL || ''}/api/public-rooms`);
       if (res.ok) {
         const data = await res.json();
         setPublicRooms(data.rooms || []);

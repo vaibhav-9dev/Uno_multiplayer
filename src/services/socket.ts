@@ -11,12 +11,17 @@ export function getSessionToken(): string {
   return token;
 }
 
+// Determine backend URL (supports Vercel frontend pointing to persistent server)
+export const BACKEND_URL =
+  (import.meta as any).env?.VITE_BACKEND_URL ||
+  (typeof window !== 'undefined' ? window.location.origin : '');
+
 // Single instance socket
 let socketInstance: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socketInstance) {
-    socketInstance = io(window.location.origin, {
+    socketInstance = io(BACKEND_URL, {
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 10,
