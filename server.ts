@@ -340,6 +340,30 @@ io.on('connection', (socket: Socket) => {
     });
   });
 
+  // Pause match
+  socket.on('game:pause', () => {
+    if (!currentRoomCode) return;
+    const room = roomManager.getRoom(currentRoomCode);
+    if (!room) return;
+    const success = room.pauseGame(socket.id);
+    if (success) {
+      broadcastRoomState(room);
+      io.to(room.roomCode).emit('game:sound', { sound: 'click' });
+    }
+  });
+
+  // Resume match
+  socket.on('game:resume', () => {
+    if (!currentRoomCode) return;
+    const room = roomManager.getRoom(currentRoomCode);
+    if (!room) return;
+    const success = room.resumeGame(socket.id);
+    if (success) {
+      broadcastRoomState(room);
+      io.to(room.roomCode).emit('game:sound', { sound: 'round_start' });
+    }
+  });
+
   // Skip turn for disconnected player
   socket.on('game:skip-turn', () => {
     if (!currentRoomCode) return;
@@ -394,6 +418,27 @@ io.on('connection', (socket: Socket) => {
     }
   });
 });
+
+// Periodic check for 3-minute turn timeouts and abandoned single-player matches
+setInterval(() => {
+  for (const room of roomManager.getAllRooms()) {
+    if (room.status === 'in_progress' && !room.isPaused) {
+      const result = room.checkTurnTimeout();
+      if (result.updated) {
+        broadcastRoomState(room);
+        if (result.aborted) {
+          io.to(room.roomCode).emit('game:aborted', {
+            abortedBy: 'System',
+            reason: result.reason || 'Match aborted due to player inactivity.',
+          });
+          io.to(room.roomCode).emit('game:sound', { sound: 'penalty' });
+        } else {
+          io.to(room.roomCode).emit('game:sound', { sound: 'skip' });
+        }
+      }
+    }
+  }
+}, 3000);
 
 // Setup Vite development middleware or static production serving
 async function startServer() {

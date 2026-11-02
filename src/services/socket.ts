@@ -185,6 +185,14 @@ export const socketClient = {
     getSocket().emit('game:abort', { reason });
   },
 
+  pauseMatch: () => {
+    getSocket().emit('game:pause');
+  },
+
+  resumeMatch: () => {
+    getSocket().emit('game:resume');
+  },
+
   skipTurn: () => {
     getSocket().emit('game:skip-turn');
   },

@@ -39,6 +39,10 @@ export class UnoRoom {
   public gameWinner: ClientGameState['gameWinner'] = null;
   public abortInfo: ClientGameState['abortInfo'] = null;
   public disconnectedPlayer: ClientGameState['disconnectedPlayer'] = null;
+  public isPaused: boolean = false;
+  public pausedBy: string | null = null;
+  public turnStartedAt: number = Date.now();
+  public turnTimeoutMs: number = 180000; // 3 minutes timeout
   public logs: GameLogEntry[] = [];
   public lastPlayTimestamp: number = Date.now();
   public createdAt: number = Date.now();
@@ -163,6 +167,63 @@ export class UnoRoom {
     return true;
   }
 
+  public pauseGame(requesterId: string): boolean {
+    if (this.status !== 'in_progress' || this.isPaused) return false;
+    const player = this.players.find((p) => p.id === requesterId);
+    this.isPaused = true;
+    this.pausedBy = player?.name || 'Player';
+    this.addLog('pause', `⏸️ Game PAUSED by ${this.pausedBy}.`);
+    return true;
+  }
+
+  public resumeGame(requesterId: string): boolean {
+    if (!this.isPaused) return false;
+    const player = this.players.find((p) => p.id === requesterId);
+    this.isPaused = false;
+    this.pausedBy = null;
+    this.turnStartedAt = Date.now();
+    this.addLog('resume', `▶️ Game RESUMED by ${player?.name || 'Player'}.`);
+    return true;
+  }
+
+  public checkTurnTimeout(): { updated: boolean; aborted: boolean; reason?: string } {
+    if (this.status !== 'in_progress' || this.isPaused) {
+      return { updated: false, aborted: false };
+    }
+
+    const connectedPlayers = this.players.filter((p) => p.isConnected);
+    // If only one player is connected in an in-progress multiplayer match:
+    if (connectedPlayers.length <= 1 && this.players.length > 1) {
+      const dropTime = this.disconnectedPlayer?.disconnectedAt || this.lastPlayTimestamp;
+      // If others have been disconnected for > 45s, auto-abort and release remaining player
+      if (Date.now() - dropTime > 45000) {
+        this.abortGame(connectedPlayers[0]?.id || '', 'Match ended: Opponents disconnected.');
+        return { updated: true, aborted: true, reason: 'Opponents disconnected.' };
+      }
+    }
+
+    // Check turn duration (3 minutes)
+    const elapsed = Date.now() - this.turnStartedAt;
+    if (elapsed >= this.turnTimeoutMs) {
+      const current = this.players[this.currentTurnIndex];
+      if (connectedPlayers.length <= 1) {
+        this.abortGame(connectedPlayers[0]?.id || '', 'Match aborted: Player inactive for more than 3 minutes.');
+        return { updated: true, aborted: true, reason: 'Player inactive for more than 3 minutes.' };
+      }
+
+      this.addLog('timeout', `⏰ ${current?.name}'s turn timed out (3 min inactivity). Auto-drawn card & turn passed.`);
+      const drawn = this.drawCardsFromPile(1);
+      if (current) {
+        current.hand.push(...drawn);
+        current.cardCount = current.hand.length;
+      }
+      this.advanceTurn(1);
+      return { updated: true, aborted: false };
+    }
+
+    return { updated: false, aborted: false };
+  }
+
   public setReady(playerId: string, isReady: boolean): void {
     const player = this.players.find((p) => p.id === playerId);
     if (player) {
@@ -282,10 +343,12 @@ export class UnoRoom {
     }
     this.currentTurnIndex = nextIndex;
     this.lastPlayTimestamp = Date.now();
+    this.turnStartedAt = Date.now();
   }
 
   public playCard(playerId: string, cardId: string, chosenColor?: ActiveColor): { success: boolean; message?: string } {
     if (this.status !== 'in_progress') return { success: false, message: 'Game is not in progress' };
+    if (this.isPaused) return { success: false, message: 'Game is currently paused' };
     if (this.activeChallenge) return { success: false, message: 'Must resolve pending Wild Draw Four challenge first' };
 
     const player = this.players[this.currentTurnIndex];
@@ -419,6 +482,7 @@ export class UnoRoom {
 
   public drawCard(playerId: string): { success: boolean; drawnCard?: Card; canPlay?: boolean; message?: string } {
     if (this.status !== 'in_progress') return { success: false, message: 'Game is not in progress' };
+    if (this.isPaused) return { success: false, message: 'Game is currently paused' };
     if (this.activeChallenge) return { success: false, message: 'Challenge pending' };
 
     const player = this.players[this.currentTurnIndex];
@@ -461,6 +525,7 @@ export class UnoRoom {
 
   public passTurn(playerId: string): { success: boolean; message?: string } {
     if (this.status !== 'in_progress') return { success: false, message: 'Game is not in progress' };
+    if (this.isPaused) return { success: false, message: 'Game is currently paused' };
     const player = this.players[this.currentTurnIndex];
     if (player.id !== playerId) return { success: false, message: 'Not your turn' };
     if (!this.pendingDrawnCard || this.pendingDrawnCard.playerId !== playerId) {
@@ -474,6 +539,7 @@ export class UnoRoom {
   }
 
   public resolveChallenge(challengerId: string, didChallenge: boolean): { success: boolean; message?: string } {
+    if (this.isPaused) return { success: false, message: 'Game is currently paused' };
     if (!this.activeChallenge) return { success: false, message: 'No active challenge' };
     if (this.activeChallenge.targetPlayerId !== challengerId) {
       return { success: false, message: 'You are not the challenged player' };
@@ -659,6 +725,9 @@ export class UnoRoom {
       }
     }
 
+    const connectedCount = this.players.filter((p) => p.isConnected).length;
+    const onlyOnePlayerLeft = this.status === 'in_progress' && connectedCount <= 1 && this.players.length > 1;
+
     return {
       roomCode: this.roomCode,
       hostId: this.hostId,
@@ -683,6 +752,11 @@ export class UnoRoom {
       gameWinner: this.gameWinner,
       abortInfo: this.abortInfo,
       disconnectedPlayer: this.disconnectedPlayer,
+      isPaused: this.isPaused,
+      pausedBy: this.pausedBy,
+      turnStartedAt: this.turnStartedAt,
+      turnTimeoutMs: this.turnTimeoutMs,
+      onlyOnePlayerLeft,
       logs: [...this.logs],
     };
   }

@@ -20,6 +20,8 @@ import {
   Flame,
   AlertCircle,
   Play,
+  Pause,
+  Clock,
   Users,
   MessageSquare,
   ChevronDown,
@@ -59,6 +61,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
   const [unoAlertText, setUnoAlertText] = useState<string | null>(null);
   const [recentChatReaction, setRecentChatReaction] = useState<{ name: string; text: string } | null>(null);
   const [dropSeconds, setDropSeconds] = useState(0);
+  const [turnSecondsRemaining, setTurnSecondsRemaining] = useState(180);
 
   const isMyTurn = gameState.activePlayerId === gameState.myPlayerId;
   const isHost = gameState.hostId === gameState.myPlayerId;
@@ -81,6 +84,21 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
     }, 1000);
     return () => clearInterval(interval);
   }, [gameState.disconnectedPlayer]);
+
+  // Turn timer countdown (3 minutes timeout)
+  useEffect(() => {
+    if (gameState.status !== 'in_progress' || gameState.isPaused) return;
+
+    const updateTimer = () => {
+      const elapsed = Date.now() - (gameState.turnStartedAt || Date.now());
+      const remaining = Math.max(0, Math.ceil((gameState.turnTimeoutMs - elapsed) / 1000));
+      setTurnSecondsRemaining(remaining);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [gameState.status, gameState.isPaused, gameState.turnStartedAt, gameState.turnTimeoutMs, gameState.activePlayerId]);
 
   // Copy room code or direct link
   const handleCopyRoom = () => {
@@ -124,7 +142,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
 
   // Play card handler
   const handleCardClick = (card: Card) => {
-    if (!isMyTurn) return;
+    if (!isMyTurn || gameState.isPaused) return;
     if (gameState.activeChallenge) return;
 
     if (card.color === 'wild') {
@@ -143,7 +161,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
 
   // Draw card handler
   const handleDrawCard = () => {
-    if (!isMyTurn) return;
+    if (!isMyTurn || gameState.isPaused) return;
     if (gameState.activeChallenge) return;
     socketClient.drawCard();
   };
@@ -270,7 +288,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
           </div>
         </div>
 
-        {/* Right: Sound, Rules, Abort, Leave */}
+        {/* Right: Sound, Pause/Resume, Rules, Abort, Leave */}
         <div className="flex items-center gap-1.5 md:gap-2">
           <button
             onClick={handleToggleMute}
@@ -279,6 +297,38 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4" />}
           </button>
+
+          {/* Pause / Resume Button */}
+          {gameState.status === 'in_progress' && (
+            <button
+              onClick={() => {
+                soundService.play('click');
+                if (gameState.isPaused) {
+                  socketClient.resumeMatch();
+                } else {
+                  socketClient.pauseMatch();
+                }
+              }}
+              className={`px-2.5 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-1 shadow-sm ${
+                gameState.isPaused
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400 animate-pulse'
+                  : 'bg-neutral-900 hover:bg-neutral-800 border-neutral-700 text-neutral-300 hover:text-white'
+              }`}
+              title={gameState.isPaused ? 'Resume Match' : 'Pause Match'}
+            >
+              {gameState.isPaused ? (
+                <>
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Resume</span>
+                </>
+              ) : (
+                <>
+                  <Pause className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Pause</span>
+                </>
+              )}
+            </button>
+          )}
 
           <button
             onClick={() => {
@@ -291,7 +341,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
             <HelpCircle className="w-4 h-4 text-amber-400" />
           </button>
 
-          {/* Abort Match Button (Available during active play) */}
+          {/* Abort Match Button */}
           {(gameState.status === 'in_progress' || gameState.status === 'round_over') && (
             <button
               onClick={() => {
@@ -302,7 +352,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
               title="Abort Match"
             >
               <StopCircle className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline">Abort Match</span>
+              <span className="hidden sm:inline">Abort</span>
             </button>
           )}
 
@@ -325,7 +375,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
           <div className="flex items-center gap-2 font-bold text-xs md:text-sm">
             <AlertTriangle className="w-5 h-5 text-black shrink-0 animate-bounce" />
             <span>
-              <strong>{gameState.disconnectedPlayer.name}</strong> lost connection ({dropSeconds}s ago). Waiting for them to reconnect...
+              <strong>{gameState.disconnectedPlayer.name}</strong> lost connection ({dropSeconds}s ago). Waiting for reconnection...
             </span>
           </div>
 
@@ -354,6 +404,29 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
               Abort Match
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Only One Active Player Left Alert Banner */}
+      {gameState.onlyOnePlayerLeft && gameState.status === 'in_progress' && (
+        <div className="relative z-30 w-full bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white px-4 py-2.5 shadow-xl flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2 font-bold text-xs md:text-sm">
+            <AlertTriangle className="w-5 h-5 text-yellow-300 shrink-0 animate-bounce" />
+            <span>
+              All opponents have disconnected! You can wait or abort the match now.
+            </span>
+          </div>
+
+          <button
+            onClick={() => {
+              soundService.play('click');
+              socketClient.abortMatch('Match ended: Only 1 active player remained.');
+            }}
+            className="px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-900 text-yellow-300 font-black text-xs transition flex items-center gap-1.5 shadow-lg border border-yellow-400/40"
+          >
+            <StopCircle className="w-3.5 h-3.5" />
+            <span>Exit & Abort Match</span>
+          </button>
         </div>
       )}
 
@@ -502,8 +575,8 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
 
           {/* Center Table Play Area */}
           <div className="relative flex flex-col items-center justify-center my-auto py-2">
-            {/* Active Turn Banner */}
-            <div className="mb-3">
+            {/* Active Turn Banner + 3-minute Turn Countdown Timer */}
+            <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
               <div
                 className={`px-4 py-1.5 rounded-full border text-xs md:text-sm font-black uppercase tracking-wider shadow-lg flex items-center gap-2 transition-all ${
                   isMyTurn
@@ -525,6 +598,23 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                   </>
                 )}
               </div>
+
+              {/* 3-Minute Turn Limit Timer */}
+              {gameState.status === 'in_progress' && (
+                <div
+                  className={`px-3 py-1.5 rounded-full border text-xs font-mono font-bold flex items-center gap-1.5 shadow-md ${
+                    turnSecondsRemaining <= 30
+                      ? 'bg-red-950/90 border-red-500 text-red-300 animate-pulse ring-2 ring-red-500/50'
+                      : 'bg-neutral-900/90 border-neutral-700 text-neutral-300'
+                  }`}
+                  title="3-minute turn timer limit"
+                >
+                  <Clock className={`w-3.5 h-3.5 ${turnSecondsRemaining <= 30 ? 'text-red-400 animate-spin' : 'text-amber-400'}`} />
+                  <span>
+                    {Math.floor(turnSecondsRemaining / 60)}:{String(turnSecondsRemaining % 60).padStart(2, '0')}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Piles and Central Action Row */}
@@ -532,11 +622,11 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
               {/* Draw Pile (Clickable on turn) */}
               <div className="flex flex-col items-center">
                 <div
-                  onClick={isMyTurn ? handleDrawCard : undefined}
+                  onClick={isMyTurn && !gameState.isPaused ? handleDrawCard : undefined}
                   className={`relative cursor-pointer transition-all duration-200 ${
-                    isMyTurn
+                    isMyTurn && !gameState.isPaused
                       ? 'hover:scale-105 active:scale-95 ring-4 ring-amber-400/60 ring-offset-2 ring-offset-emerald-950 rounded-2xl'
-                      : 'cursor-not-allowed'
+                      : 'cursor-not-allowed opacity-90'
                   }`}
                   title={isMyTurn ? 'Click to Draw a Card' : 'Draw Pile'}
                 >
@@ -551,7 +641,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                     {gameState.drawPileCount} cards
                   </div>
 
-                  {isMyTurn && (
+                  {isMyTurn && !gameState.isPaused && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 hover:opacity-100 transition-opacity">
                       <span className="font-black text-amber-300 text-xs md:text-sm uppercase tracking-wider drop-shadow-md">
                         +1 Draw
@@ -594,7 +684,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
             </div>
 
             {/* Interactive Turn Action Prompt / Drawn Card Options */}
-            {isMyTurn && gameState.pendingDrawnCard && (
+            {isMyTurn && !gameState.isPaused && gameState.pendingDrawnCard && (
               <div className="mt-4 p-3 rounded-2xl bg-neutral-900/95 border-2 border-amber-400 shadow-2xl flex flex-col sm:flex-row items-center gap-3 animate-fadeIn">
                 <span className="text-xs font-bold text-neutral-300">
                   You drew a playable card!
@@ -627,7 +717,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
           <div className="relative z-20 w-full flex flex-col items-center pb-2">
             {/* Quick Action Buttons Row (UNO Button & Catch UNO Button & Emotes) */}
             <div className="flex items-center justify-between w-full max-w-4xl px-2 mb-2">
-              {/* Left: Catch UNO Button (When opponent is vulnerable) */}
+              {/* Left: Catch UNO Button */}
               <div>
                 {gameState.canCatchUnoTarget ? (
                   <button
@@ -689,6 +779,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                     const activeColor = gameState.activeColor;
                     const isPlayable = Boolean(
                       isMyTurn &&
+                      !gameState.isPaused &&
                       topDiscard &&
                       activeColor &&
                       (card.color === 'wild' ||
@@ -714,7 +805,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                           card={card}
                           size="md"
                           isPlayable={isPlayable}
-                          disabled={!isMyTurn}
+                          disabled={!isMyTurn || gameState.isPaused}
                           onClick={() => handleCardClick(card)}
                         />
                       </div>
@@ -774,6 +865,10 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                       ? 'text-rose-400 font-bold'
                       : entry.type === 'round_win'
                       ? 'text-emerald-400 font-bold'
+                      : entry.type === 'pause' || entry.type === 'resume'
+                      ? 'text-blue-300 font-semibold'
+                      : entry.type === 'timeout'
+                      ? 'text-orange-400 font-bold'
                       : 'text-neutral-300'
                   }`}
                 >
@@ -786,6 +881,33 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
       </div>
 
       {/* MODALS */}
+
+      {/* Paused Overlay */}
+      {gameState.isPaused && (
+        <div className="fixed inset-0 z-45 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="w-full max-w-sm rounded-3xl bg-neutral-900 border-2 border-amber-400 p-6 md:p-8 shadow-2xl text-white text-center">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-400 text-amber-400 mx-auto mb-4 flex items-center justify-center">
+              <Pause className="w-9 h-9" />
+            </div>
+            <h3 className="text-2xl font-black uppercase tracking-wider text-amber-400 mb-2">
+              Match Paused
+            </h3>
+            <p className="text-xs md:text-sm text-neutral-300 mb-6">
+              Paused by <strong className="text-white">{gameState.pausedBy || 'Player'}</strong>. Turns and card actions are temporarily frozen.
+            </p>
+            <button
+              onClick={() => {
+                soundService.play('click');
+                socketClient.resumeMatch();
+              }}
+              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-black text-sm uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              <span>Resume Game</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Abort Confirmation Dialog */}
       {showAbortConfirm && (
@@ -867,11 +989,12 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
         />
       )}
 
-      {/* Scoreboard Modal */}
+      {/* Scoreboard Modal (Includes Back to Home Page button) */}
       <ScoreboardModal
         gameState={gameState}
         onNextRound={() => socketClient.nextRound()}
         onRestartMatch={() => socketClient.startGame()}
+        onLeaveRoom={onLeaveRoom}
       />
 
       {/* How to Play Modal */}

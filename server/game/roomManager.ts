@@ -44,6 +44,10 @@ export class RoomManager {
     return this.rooms.get(roomCode.toUpperCase().trim());
   }
 
+  public getAllRooms(): UnoRoom[] {
+    return Array.from(this.rooms.values());
+  }
+
   public getRoomBySession(sessionToken: string): UnoRoom | undefined {
     const code = this.sessionToRoom.get(sessionToken);
     if (!code) return undefined;

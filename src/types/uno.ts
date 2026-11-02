@@ -55,7 +55,7 @@ export interface WildChallengeState {
 export interface GameLogEntry {
   id: string;
   timestamp: number;
-  type: 'play' | 'draw' | 'pass' | 'uno' | 'catch_uno' | 'challenge' | 'round_win' | 'info' | 'system';
+  type: 'play' | 'draw' | 'pass' | 'uno' | 'catch_uno' | 'challenge' | 'round_win' | 'info' | 'system' | 'pause' | 'resume' | 'timeout';
   message: string;
   playerId?: string;
   playerName?: string;
@@ -122,5 +122,10 @@ export interface ClientGameState {
     disconnectedAt: number;
     isTurnPlayer: boolean;
   } | null;
+  isPaused: boolean;
+  pausedBy?: string | null;
+  turnStartedAt: number;
+  turnTimeoutMs: number;
+  onlyOnePlayerLeft?: boolean;
   logs: GameLogEntry[];
 }

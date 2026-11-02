@@ -20,13 +20,18 @@ export default function App() {
     const handleGameState = (state: ClientGameState) => {
       setGameState(state);
       setActiveRoomCode(state.roomCode);
-      setActiveRoom(state.roomCode);
 
-      // Keep URL synced with room code
-      const url = new URL(window.location.href);
-      if (url.searchParams.get('room') !== state.roomCode) {
-        url.searchParams.set('room', state.roomCode);
-        window.history.replaceState({}, '', url.toString());
+      if (state.status === 'game_over' || state.status === 'aborted') {
+        // Match ended or aborted: do not keep active room in session storage
+        setActiveRoom(null);
+      } else {
+        setActiveRoom(state.roomCode);
+        // Keep URL synced with room code
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('room') !== state.roomCode) {
+          url.searchParams.set('room', state.roomCode);
+          window.history.replaceState({}, '', url.toString());
+        }
       }
     };
 
@@ -135,10 +140,9 @@ export default function App() {
     setGameState(null);
     setActiveRoomCode(null);
 
-    // Clean URL
-    const url = new URL(window.location.href);
-    url.searchParams.delete('room');
-    window.history.replaceState({}, '', url.toString());
+    // Completely clear query params from browser URL
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, '', cleanUrl);
   };
 
   return (

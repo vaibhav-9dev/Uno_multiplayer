@@ -1,19 +1,21 @@
 import React, { useEffect } from 'react';
 import { ClientGameState } from '../types/uno.ts';
 import confetti from 'canvas-confetti';
-import { Trophy, Award, ArrowRight, RotateCcw, Crown } from 'lucide-react';
+import { Trophy, Award, ArrowRight, RotateCcw, Crown, Home } from 'lucide-react';
 import { soundService } from '../services/sound.ts';
 
 interface ScoreboardModalProps {
   gameState: ClientGameState;
   onNextRound: () => void;
   onRestartMatch?: () => void;
+  onLeaveRoom?: () => void;
 }
 
 export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
   gameState,
   onNextRound,
   onRestartMatch,
+  onLeaveRoom,
 }) => {
   const isRoundOver = gameState.status === 'round_over';
   const isGameOver = gameState.status === 'game_over';
@@ -173,6 +175,18 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
               Waiting for host ({gameState.players.find((p) => p.id === gameState.hostId)?.name || 'Host'}) to start next round...
             </div>
           )}
+
+          {/* Back to Home / Lobby button */}
+          <button
+            onClick={() => {
+              soundService.play('click');
+              if (onLeaveRoom) onLeaveRoom();
+            }}
+            className="w-full mt-3 py-3 px-4 rounded-xl bg-neutral-800/90 hover:bg-neutral-700 text-neutral-200 hover:text-white font-bold text-sm transition flex items-center justify-center gap-2 border border-neutral-700 shadow-md"
+          >
+            <Home className="w-4 h-4 text-amber-400" />
+            <span>Back to Home Page</span>
+          </button>
         </div>
       </div>
     </div>
