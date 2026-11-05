@@ -58,9 +58,87 @@ app.get('/api/health', (_req, res) => {
 });
 
 // Socket.io real-time connection handling
+// Map roomCode -> Set of socket IDs active in voice chat
+const voiceRooms = new Map<string, Set<string>>();
+
+function removeSocketFromVoice(socketId: string, roomCode?: string) {
+  if (roomCode) {
+    const vSet = voiceRooms.get(roomCode);
+    if (vSet) {
+      vSet.delete(socketId);
+      if (vSet.size === 0) {
+        voiceRooms.delete(roomCode);
+      }
+      io.to(roomCode).emit('voice:user-left', { socketId });
+    }
+  } else {
+    for (const [code, vSet] of voiceRooms.entries()) {
+      if (vSet.has(socketId)) {
+        vSet.delete(socketId);
+        if (vSet.size === 0) {
+          voiceRooms.delete(code);
+        }
+        io.to(code).emit('voice:user-left', { socketId });
+      }
+    }
+  }
+}
+
 io.on('connection', (socket: Socket) => {
   let currentRoomCode: string | null = null;
   let sessionToken: string | null = null;
+
+  // Voice Chat Signaling
+  socket.on('voice:join', (data: { roomCode: string }, callback) => {
+    const code = data?.roomCode || currentRoomCode;
+    if (!code) return callback?.({ users: [] });
+
+    if (!voiceRooms.has(code)) {
+      voiceRooms.set(code, new Set());
+    }
+    const vSet = voiceRooms.get(code)!;
+    const existingUsers = Array.from(vSet);
+
+    vSet.add(socket.id);
+    socket.join(code);
+
+    // Notify others in room that a voice peer joined
+    socket.to(code).emit('voice:user-joined', { socketId: socket.id });
+
+    // Return other active voice peers to the joining socket
+    callback?.({ users: existingUsers });
+  });
+
+  socket.on('voice:signal', (data: { to: string; signal: any }) => {
+    if (data.to && data.signal) {
+      io.to(data.to).emit('voice:signal', {
+        from: socket.id,
+        signal: data.signal,
+      });
+    }
+  });
+
+  socket.on('voice:mute-status', (data: { isMuted: boolean }) => {
+    if (currentRoomCode) {
+      socket.to(currentRoomCode).emit('voice:mute-status', {
+        socketId: socket.id,
+        isMuted: data.isMuted,
+      });
+    }
+  });
+
+  socket.on('voice:speaking', (data: { isSpeaking: boolean }) => {
+    if (currentRoomCode) {
+      socket.to(currentRoomCode).emit('voice:speaking', {
+        socketId: socket.id,
+        isSpeaking: data.isSpeaking,
+      });
+    }
+  });
+
+  socket.on('voice:leave', () => {
+    removeSocketFromVoice(socket.id, currentRoomCode || undefined);
+  });
 
   // Reconnection or initial session check
   socket.on('room:reconnect', (data: { sessionToken: string; roomCode?: string; playerName?: string; avatar?: string }, callback) => {
@@ -379,6 +457,7 @@ io.on('connection', (socket: Socket) => {
 
   // Leave room
   socket.on('room:leave', () => {
+    removeSocketFromVoice(socket.id, currentRoomCode || undefined);
     if (sessionToken) {
       roomManager.removeSession(sessionToken);
     }
@@ -401,6 +480,7 @@ io.on('connection', (socket: Socket) => {
 
   // Disconnect handling
   socket.on('disconnect', () => {
+    removeSocketFromVoice(socket.id, currentRoomCode || undefined);
     if (currentRoomCode) {
       const room = roomManager.getRoom(currentRoomCode);
       if (room) {

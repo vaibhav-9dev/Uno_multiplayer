@@ -8,6 +8,8 @@ import { ColorPickerModal } from './ColorPickerModal.tsx';
 import { ChallengeModal } from './ChallengeModal.tsx';
 import { ScoreboardModal } from './ScoreboardModal.tsx';
 import { HowToPlayModal } from './HowToPlayModal.tsx';
+import { VoiceChatBar } from './VoiceChatBar.tsx';
+import { voiceChatService } from '../services/voiceChat.ts';
 import {
   Volume2,
   VolumeX,
@@ -288,12 +290,15 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
           </div>
         </div>
 
-        {/* Right: Sound, Pause/Resume, Rules, Abort, Leave */}
+        {/* Right: Voice Chat, Sound, Pause/Resume, Rules, Abort, Leave */}
         <div className="flex items-center gap-1.5 md:gap-2">
+          {/* Live Voice Chat Bar */}
+          <VoiceChatBar roomCode={gameState.roomCode} />
+
           <button
             onClick={handleToggleMute}
             className="p-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-300 hover:text-white transition"
-            title={isMuted ? 'Unmute' : 'Mute'}
+            title={isMuted ? 'Unmute Sound Effects' : 'Mute Sound Effects'}
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4" />}
           </button>

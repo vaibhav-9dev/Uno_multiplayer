@@ -1,6 +1,6 @@
 {
   "name": "UNO Online Multiplayer",
   "description": "Real-time human-vs-human multiplayer UNO card game following official classic rules with custom rooms, live sync, challenges, and scoring.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
