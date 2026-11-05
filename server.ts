@@ -93,6 +93,10 @@ io.on('connection', (socket: Socket) => {
     const code = data?.roomCode || currentRoomCode;
     if (!code) return callback?.({ users: [] });
 
+    if (!currentRoomCode) {
+      currentRoomCode = code;
+    }
+
     if (!voiceRooms.has(code)) {
       voiceRooms.set(code, new Set());
     }
