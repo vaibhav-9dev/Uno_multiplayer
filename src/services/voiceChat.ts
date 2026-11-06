@@ -212,7 +212,6 @@ class VoiceChatService {
       try {
         let blob: Blob;
         if (typeof audio === 'string') {
-          // Base64 to blob
           const byteCharacters = atob(audio);
           const byteNumbers = new Array(byteCharacters.length);
           for (let i = 0; i < byteCharacters.length; i++) {
@@ -225,12 +224,25 @@ class VoiceChatService {
         }
 
         const audioUrl = URL.createObjectURL(blob);
-        const player = new Audio(audioUrl);
+        const player = document.createElement('audio');
+        player.src = audioUrl;
         player.volume = 1.0;
+        player.setAttribute('playsinline', 'true');
+        player.setAttribute('webkit-playsinline', 'true');
+        player.style.display = 'none';
+        document.body.appendChild(player);
+
         player.onended = () => {
           URL.revokeObjectURL(audioUrl);
+          player.remove();
         };
-        await player.play().catch(() => {});
+
+        const playPromise = player.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((e) => {
+            console.log('[Voice] Mobile audio chunk deferred until screen touch:', e);
+          });
+        }
       } catch (err) {
         console.warn('[Voice] Error playing relayed audio chunk:', err);
       }
