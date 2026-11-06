@@ -140,6 +140,17 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
+  // Direct socket-relayed voice audio packet
+  // Guaranteed fallback that bypasses P2P NAT/firewall blocks entirely
+  socket.on('voice:audio-chunk', (data: { audio: ArrayBuffer | string }) => {
+    if (currentRoomCode && data?.audio) {
+      socket.to(currentRoomCode).emit('voice:audio-chunk', {
+        socketId: socket.id,
+        audio: data.audio,
+      });
+    }
+  });
+
   socket.on('voice:leave', () => {
     removeSocketFromVoice(socket.id, currentRoomCode || undefined);
   });

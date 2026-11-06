@@ -32,6 +32,7 @@ import {
   StopCircle,
   FastForward,
   Home,
+  Send,
 } from 'lucide-react';
 
 interface GameTableProps {
@@ -62,6 +63,8 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
   const [showAbortConfirm, setShowAbortConfirm] = useState(false);
   const [unoAlertText, setUnoAlertText] = useState<string | null>(null);
   const [recentChatReaction, setRecentChatReaction] = useState<{ name: string; text: string } | null>(null);
+  const [chatInputText, setChatInputText] = useState('');
+  const [showQuickPhrases, setShowQuickPhrases] = useState(false);
   const [dropSeconds, setDropSeconds] = useState(0);
   const [turnSecondsRemaining, setTurnSecondsRemaining] = useState(180);
 
@@ -737,17 +740,51 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                     CATCH UNO! ({gameState.canCatchUnoTarget.targetPlayerName})
                   </button>
                 ) : (
-                  /* Emote reaction bar */
-                  <div className="flex items-center gap-1 bg-neutral-900/80 p-1 rounded-2xl border border-neutral-800 shadow-md">
-                    {['🔥', '🤝', '😱', '😂', '🤔'].map((emoji) => (
+                  /* Quick Talk & Emote bar */
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Emote bar */}
+                    <div className="flex items-center gap-1 bg-neutral-900/90 p-1 rounded-2xl border border-neutral-800 shadow-md">
+                      {['🔥', '🤝', '😱', '😂', '🤔', 'GG'].map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={() => handleSendEmote(emoji)}
+                          className="px-1.5 h-7 flex items-center justify-center rounded-xl hover:bg-neutral-800 text-xs md:text-sm font-bold transition hover:scale-125"
+                          title={`Send ${emoji}`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Quick Text Input to Talk */}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (chatInputText.trim()) {
+                          soundService.play('click');
+                          socketClient.sendChat(chatInputText.trim());
+                          setChatInputText('');
+                        }
+                      }}
+                      className="hidden sm:flex items-center gap-1 bg-neutral-900/90 px-2 py-1 rounded-2xl border border-neutral-800 shadow-md"
+                    >
+                      <input
+                        type="text"
+                        value={chatInputText}
+                        onChange={(e) => setChatInputText(e.target.value)}
+                        placeholder="Type to talk..."
+                        maxLength={60}
+                        className="bg-transparent text-xs text-white placeholder-neutral-500 focus:outline-none w-28 md:w-36"
+                      />
                       <button
-                        key={emoji}
-                        onClick={() => handleSendEmote(emoji)}
-                        className="w-7 h-7 flex items-center justify-center rounded-xl hover:bg-neutral-800 text-base transition hover:scale-125"
+                        type="submit"
+                        disabled={!chatInputText.trim()}
+                        className="p-1 rounded-lg text-amber-400 hover:text-amber-300 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                        title="Send Message"
                       >
-                        {emoji}
+                        <Send className="w-3.5 h-3.5" />
                       </button>
-                    ))}
+                    </form>
                   </div>
                 )}
               </div>
