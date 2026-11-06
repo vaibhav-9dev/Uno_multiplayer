@@ -3,6 +3,7 @@ import { ActiveColor } from '../types/uno.ts';
 
 // Get or create unique persistent session token per browser tab
 export function getSessionToken(): string {
+  if (typeof sessionStorage === 'undefined') return 'usr_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
   let token = sessionStorage.getItem('uno_session_token');
   if (!token) {
     // Generate fresh session token for this browser tab
@@ -14,10 +15,13 @@ export function getSessionToken(): string {
 
 // Track active room for current tab
 export function getActiveRoom(): string | null {
-  return sessionStorage.getItem('uno_active_room');
+  return typeof sessionStorage === 'undefined'
+    ? null
+    : sessionStorage.getItem('uno_active_room');
 }
 
 export function setActiveRoom(roomCode: string | null): void {
+  if (typeof sessionStorage === 'undefined') return;
   if (roomCode) {
     sessionStorage.setItem('uno_active_room', roomCode);
   } else {
@@ -40,6 +44,8 @@ export function getSocket(): Socket {
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
   }
   return socketInstance;
@@ -88,117 +94,3 @@ export const socketClient = {
         }
       );
     });
-  },
-
-  quickMatch: (name: string, avatar: string): Promise<{ success: boolean; roomCode?: string; isNew?: boolean; message?: string }> => {
-    return new Promise((resolve) => {
-      getSocket().emit(
-        'room:quick-match',
-        {
-          name,
-          avatar,
-          sessionToken: getSessionToken(),
-        },
-        (res: any) => {
-          if (res.success && res.roomCode) {
-            setActiveRoom(res.roomCode);
-          }
-          resolve(res);
-        }
-      );
-    });
-  },
-
-  reconnect: (roomCode?: string, playerName?: string, avatar?: string): Promise<{ success: boolean; roomCode?: string }> => {
-    return new Promise((resolve) => {
-      getSocket().emit(
-        'room:reconnect',
-        {
-          sessionToken: getSessionToken(),
-          roomCode: roomCode || getActiveRoom() || undefined,
-          playerName,
-          avatar,
-        },
-        (res: any) => {
-          if (!res?.success) {
-            setActiveRoom(null);
-          }
-          resolve(res);
-        }
-      );
-    });
-  },
-
-  setReady: (isReady: boolean) => {
-    getSocket().emit('room:set-ready', { isReady });
-  },
-
-  startGame: () => {
-    getSocket().emit('game:start');
-  },
-
-  nextRound: () => {
-    getSocket().emit('game:next-round');
-  },
-
-  playCard: (cardId: string, chosenColor?: ActiveColor): Promise<{ success: boolean; message?: string }> => {
-    return new Promise((resolve) => {
-      getSocket().emit('game:play-card', { cardId, chosenColor }, (res: any) => resolve(res));
-    });
-  },
-
-  drawCard: (): Promise<{ success: boolean; drawnCard?: any; canPlay?: boolean; message?: string }> => {
-    return new Promise((resolve) => {
-      getSocket().emit('game:draw-card', (res: any) => resolve(res));
-    });
-  },
-
-  passTurn: (): Promise<{ success: boolean; message?: string }> => {
-    return new Promise((resolve) => {
-      getSocket().emit('game:pass-turn', (res: any) => resolve(res));
-    });
-  },
-
-  resolveChallenge: (didChallenge: boolean): Promise<{ success: boolean; message?: string }> => {
-    return new Promise((resolve) => {
-      getSocket().emit('game:resolve-challenge', { didChallenge }, (res: any) => resolve(res));
-    });
-  },
-
-  callUno: (): Promise<{ success: boolean; message?: string }> => {
-    return new Promise((resolve) => {
-      getSocket().emit('game:call-uno', (res: any) => resolve(res));
-    });
-  },
-
-  catchUno: (): Promise<{ success: boolean; message?: string }> => {
-    return new Promise((resolve) => {
-      getSocket().emit('game:catch-uno', (res: any) => resolve(res));
-    });
-  },
-
-  sendChat: (message?: string, emote?: string) => {
-    getSocket().emit('game:send-chat', { message, emote });
-  },
-
-  abortMatch: (reason?: string) => {
-    getSocket().emit('game:abort', { reason });
-  },
-
-  pauseMatch: () => {
-    getSocket().emit('game:pause');
-  },
-
-  resumeMatch: () => {
-    getSocket().emit('game:resume');
-  },
-
-  skipTurn: () => {
-    getSocket().emit('game:skip-turn');
-  },
-
-  leaveRoom: () => {
-    setActiveRoom(null);
-    getSocket().emit('room:leave');
-  },
-};
