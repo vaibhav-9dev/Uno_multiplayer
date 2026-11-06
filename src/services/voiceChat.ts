@@ -44,6 +44,8 @@ class VoiceChatService {
   private micAnalyser: AnalyserNode | null = null;
   private micSource: MediaStreamAudioSourceNode | null = null;
   private speechCheckInterval: ReturnType<typeof setInterval> | null = null;
+  private mediaRecorder: MediaRecorder | null = null;
+  private peerAudioQueues: Map<string, HTMLAudioElement[]> = new Map();
 
   private listeners = new Set<VoiceEventCallback>();
 
@@ -202,6 +204,36 @@ class VoiceChatService {
         this.speakingPeers.delete(socketId);
       }
       this.notify();
+    });
+
+    // Received direct audio chunk via socket (bypasses P2P NAT restrictions)
+    socket.on('voice:audio-chunk', async ({ socketId, audio }: { socketId: string; audio: string | ArrayBuffer }) => {
+      if (this.isDeafened || this.locallyMutedRemotePeers.has(socketId)) return;
+      try {
+        let blob: Blob;
+        if (typeof audio === 'string') {
+          // Base64 to blob
+          const byteCharacters = atob(audio);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          blob = new Blob([byteArray], { type: 'audio/webm;codecs=opus' });
+        } else {
+          blob = new Blob([audio], { type: 'audio/webm;codecs=opus' });
+        }
+
+        const audioUrl = URL.createObjectURL(blob);
+        const player = new Audio(audioUrl);
+        player.volume = 1.0;
+        player.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+        };
+        await player.play().catch(() => {});
+      } catch (err) {
+        console.warn('[Voice] Error playing relayed audio chunk:', err);
+      }
     });
 
     socket.on('voice:user-left', ({ socketId }: { socketId: string }) => {
