@@ -1,27 +1,28 @@
 import { io, Socket } from 'socket.io-client';
 import { ActiveColor } from '../types/uno.ts';
 
-// Get or create unique persistent session token per browser tab
+// Get or create a persistent session token for this browser tab.
 export function getSessionToken(): string {
-  if (typeof sessionStorage === 'undefined') return 'usr_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
   let token = sessionStorage.getItem('uno_session_token');
+
   if (!token) {
-    // Generate fresh session token for this browser tab
-    token = 'usr_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+    token =
+      'usr_' +
+      Math.random().toString(36).substring(2, 10) +
+      Date.now().toString(36);
+
     sessionStorage.setItem('uno_session_token', token);
   }
+
   return token;
 }
 
-// Track active room for current tab
+// Track the active room for this tab.
 export function getActiveRoom(): string | null {
-  return typeof sessionStorage === 'undefined'
-    ? null
-    : sessionStorage.getItem('uno_active_room');
+  return sessionStorage.getItem('uno_active_room');
 }
 
 export function setActiveRoom(roomCode: string | null): void {
-  if (typeof sessionStorage === 'undefined') return;
   if (roomCode) {
     sessionStorage.setItem('uno_active_room', roomCode);
   } else {
@@ -29,12 +30,12 @@ export function setActiveRoom(roomCode: string | null): void {
   }
 }
 
-// Determine backend URL (supports Vercel frontend pointing to persistent server)
+// Determine backend URL.
 export const BACKEND_URL =
   (import.meta as any).env?.VITE_BACKEND_URL ||
   (typeof window !== 'undefined' ? window.location.origin : '');
 
-// Single instance socket
+// Single Socket.IO instance.
 let socketInstance: Socket | null = null;
 
 export function getSocket(): Socket {
@@ -46,8 +47,10 @@ export function getSocket(): Socket {
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 20000,
+      transports: ['websocket', 'polling'],
     });
   }
+
   return socketInstance;
 }
 
@@ -56,7 +59,15 @@ export const socketClient = {
     return getSocket();
   },
 
-  createRoom: (name: string, avatar: string, settings?: any): Promise<{ success: boolean; roomCode?: string; message?: string }> => {
+  createRoom: (
+    name: string,
+    avatar: string,
+    settings?: any
+  ): Promise<{
+    success: boolean;
+    roomCode?: string;
+    message?: string;
+  }> => {
     return new Promise((resolve) => {
       getSocket().emit(
         'room:create',
@@ -66,17 +77,26 @@ export const socketClient = {
           sessionToken: getSessionToken(),
           settings,
         },
-        (res: any) => {
-          if (res.success && res.roomCode) {
-            setActiveRoom(res.roomCode);
+        (response: any) => {
+          if (response?.success && response.roomCode) {
+            setActiveRoom(response.roomCode);
           }
-          resolve(res);
+
+          resolve(response);
         }
       );
     });
   },
 
-  joinRoom: (roomCode: string, name: string, avatar: string): Promise<{ success: boolean; roomCode?: string; message?: string }> => {
+  joinRoom: (
+    roomCode: string,
+    name: string,
+    avatar: string
+  ): Promise<{
+    success: boolean;
+    roomCode?: string;
+    message?: string;
+  }> => {
     return new Promise((resolve) => {
       getSocket().emit(
         'room:join',
@@ -86,11 +106,188 @@ export const socketClient = {
           avatar,
           sessionToken: getSessionToken(),
         },
-        (res: any) => {
-          if (res.success && res.roomCode) {
-            setActiveRoom(res.roomCode);
+        (response: any) => {
+          if (response?.success && response.roomCode) {
+            setActiveRoom(response.roomCode);
           }
-          resolve(res);
+
+          resolve(response);
         }
       );
     });
+  },
+
+  quickMatch: (
+    name: string,
+    avatar: string
+  ): Promise<{
+    success: boolean;
+    roomCode?: string;
+    isNew?: boolean;
+    message?: string;
+  }> => {
+    return new Promise((resolve) => {
+      getSocket().emit(
+        'room:quick-match',
+        {
+          name,
+          avatar,
+          sessionToken: getSessionToken(),
+        },
+        (response: any) => {
+          if (response?.success && response.roomCode) {
+            setActiveRoom(response.roomCode);
+          }
+
+          resolve(response);
+        }
+      );
+    });
+  },
+
+  reconnect: (
+    roomCode?: string,
+    playerName?: string,
+    avatar?: string
+  ): Promise<{
+    success: boolean;
+    roomCode?: string;
+  }> => {
+    return new Promise((resolve) => {
+      getSocket().emit(
+        'room:reconnect',
+        {
+          sessionToken: getSessionToken(),
+          roomCode: roomCode || getActiveRoom() || undefined,
+          playerName,
+          avatar,
+        },
+        (response: any) => {
+          if (!response?.success) {
+            setActiveRoom(null);
+          }
+
+          resolve(response);
+        }
+      );
+    });
+  },
+
+  setReady: (isReady: boolean) => {
+    getSocket().emit('room:set-ready', { isReady });
+  },
+
+  startGame: () => {
+    getSocket().emit('game:start');
+  },
+
+  nextRound: () => {
+    getSocket().emit('game:next-round');
+  },
+
+  playCard: (
+    cardId: string,
+    chosenColor?: ActiveColor
+  ): Promise<{
+    success: boolean;
+    message?: string;
+  }> => {
+    return new Promise((resolve) => {
+      getSocket().emit(
+        'game:play-card',
+        { cardId, chosenColor },
+        (response: any) => resolve(response)
+      );
+    });
+  },
+
+  drawCard: (): Promise<{
+    success: boolean;
+    drawnCard?: any;
+    canPlay?: boolean;
+    message?: string;
+  }> => {
+    return new Promise((resolve) => {
+      getSocket().emit(
+        'game:draw-card',
+        (response: any) => resolve(response)
+      );
+    });
+  },
+
+  passTurn: (): Promise<{
+    success: boolean;
+    message?: string;
+  }> => {
+    return new Promise((resolve) => {
+      getSocket().emit(
+        'game:pass-turn',
+        (response: any) => resolve(response)
+      );
+    });
+  },
+
+  resolveChallenge: (
+    didChallenge: boolean
+  ): Promise<{
+    success: boolean;
+    message?: string;
+  }> => {
+    return new Promise((resolve) => {
+      getSocket().emit(
+        'game:resolve-challenge',
+        { didChallenge },
+        (response: any) => resolve(response)
+      );
+    });
+  },
+
+  callUno: (): Promise<{
+    success: boolean;
+    message?: string;
+  }> => {
+    return new Promise((resolve) => {
+      getSocket().emit(
+        'game:call-uno',
+        (response: any) => resolve(response)
+      );
+    });
+  },
+
+  catchUno: (): Promise<{
+    success: boolean;
+    message?: string;
+  }> => {
+    return new Promise((resolve) => {
+      getSocket().emit(
+        'game:catch-uno',
+        (response: any) => resolve(response)
+      );
+    });
+  },
+
+  sendChat: (message?: string, emote?: string) => {
+    getSocket().emit('game:send-chat', { message, emote });
+  },
+
+  abortMatch: (reason?: string) => {
+    getSocket().emit('game:abort', { reason });
+  },
+
+  pauseMatch: () => {
+    getSocket().emit('game:pause');
+  },
+
+  resumeMatch: () => {
+    getSocket().emit('game:resume');
+  },
+
+  skipTurn: () => {
+    getSocket().emit('game:skip-turn');
+  },
+
+  leaveRoom: () => {
+    setActiveRoom(null);
+    getSocket().emit('room:leave');
+  },
+};
