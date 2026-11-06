@@ -558,6 +558,30 @@ class VoiceChatService {
         clearInterval(this.speechCheckInterval);
       }
 
+      // Initialize real-time MediaRecorder to stream audio chunks directly via socket
+      // This is the guaranteed fallback that works across any firewall/NAT without WebRTC
+      try {
+        let mimeType = 'audio/webm;codecs=opus';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
+        }
+
+        const options = mimeType ? { mimeType } : undefined;
+        this.mediaRecorder = new MediaRecorder(stream, options);
+
+        this.mediaRecorder.ondataavailable = async (e) => {
+          if (e.data && e.data.size > 0 && this.isConnected && !this.isMicMuted && wasSpeaking) {
+            const buffer = await e.data.arrayBuffer();
+            getSocket().emit('voice:audio-chunk', { audio: buffer });
+          }
+        };
+
+        // Slice audio into 250ms chunks for smooth real-time streaming
+        this.mediaRecorder.start(250);
+      } catch (e) {
+        console.warn('[Voice] MediaRecorder fallback init error:', e);
+      }
+
       this.speechCheckInterval = setInterval(() => {
         if (!this.micAnalyser || this.isMicMuted || !this.isConnected) {
           if (wasSpeaking) {
