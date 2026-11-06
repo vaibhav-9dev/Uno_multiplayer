@@ -312,11 +312,16 @@ class VoiceChatService {
       this.getPlaybackContext();
 
       if (!this.localStream) {
+        // Mobile-optimized audio constraints:
+        // By avoiding aggressive AEC/AGC channel-locking, mobile OS (Android/iOS)
+        // routes audio to the primary speaker (Media Volume) rather than the phone ear-call receiver.
         this.localStream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
+            channelCount: 1,
+            sampleRate: 48000,
           },
           video: false,
         });
@@ -420,6 +425,11 @@ class VoiceChatService {
         audio.style.display = 'none';
         document.body.appendChild(audio);
         peer!.audioElement = audio;
+
+        // On mobile devices supporting setSinkId, force audio to default speaker output
+        if ('setSinkId' in audio && typeof (audio as any).setSinkId === 'function') {
+          (audio as any).setSinkId('').catch(() => {});
+        }
       }
       audio.srcObject = remoteStream;
       audio.muted = isMutedLocally;
