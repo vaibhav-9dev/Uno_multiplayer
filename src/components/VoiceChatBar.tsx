@@ -63,33 +63,33 @@ export const VoiceChatBar: React.FC<VoiceChatBarProps> = ({ roomCode }) => {
   };
 
   return (
-    <div className="flex items-center gap-1.5 bg-neutral-900/90 border border-neutral-700/80 rounded-xl px-2 py-1 shadow-md backdrop-blur-md">
-      {/* Status indicator / Live speaking wave */}
-      <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-black/40 border border-neutral-800">
+    <div className="flex items-center gap-1.5 bg-neutral-900 border-2 border-neutral-700 px-2 py-1 shadow-[2px_2px_0px_#000]">
+      {/* Status indicator */}
+      <div className="flex items-center gap-1 px-1.5 py-0.5 bg-neutral-950 border border-neutral-800">
         {isConnected ? (
           <div className="flex items-center gap-1.5">
             <span
-              className={`w-2 h-2 rounded-full transition-colors ${
+              className={`w-2 h-2 border transition-colors ${
                 isLocallySpeaking
-                  ? 'bg-emerald-400 animate-ping ring-2 ring-emerald-400'
+                  ? 'bg-emerald-400 border-white animate-ping'
                   : isMicMuted
-                  ? 'bg-neutral-500'
-                  : 'bg-emerald-500'
+                  ? 'bg-neutral-600 border-neutral-700'
+                  : 'bg-emerald-500 border-black'
               }`}
             />
-            <span className="text-[11px] font-bold text-neutral-300 hidden sm:inline flex items-center gap-1">
+            <span className="font-mono text-[10px] font-bold text-neutral-300 hidden sm:inline flex items-center gap-1">
               {isLocallySpeaking ? (
                 <span className="text-emerald-400 flex items-center gap-1">
-                  <Radio className="w-3 h-3 animate-pulse" /> Speaking
+                  <Radio className="w-3 h-3 animate-pulse" /> LIVE
                 </span>
               ) : isMicMuted ? (
-                'Muted'
+                'MUTED'
               ) : (
-                'Voice'
+                'VOICE'
               )}
             </span>
             {peerCount > 0 && (
-              <span className="flex items-center gap-0.5 text-[10px] text-neutral-400 font-mono ml-0.5">
+              <span className="flex items-center gap-0.5 text-[9px] text-neutral-400 font-mono ml-0.5">
                 <Users className="w-2.5 h-2.5 text-neutral-500" />
                 {peerCount + 1}
               </span>
@@ -98,11 +98,11 @@ export const VoiceChatBar: React.FC<VoiceChatBarProps> = ({ roomCode }) => {
         ) : (
           <button
             onClick={() => voiceChatService.startVoice(roomCode)}
-            className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition"
+            className="font-mono text-[10px] font-black uppercase text-amber-400 hover:text-amber-300 flex items-center gap-1 transition"
             title="Click to enable in-game voice chat"
           >
             <Radio className="w-3 h-3" />
-            <span>{isConnecting ? 'Joining Voice...' : 'Join Voice'}</span>
+            <span>{isConnecting ? 'JOINING...' : 'VOICE CHAT'}</span>
           </button>
         )}
       </div>
@@ -110,21 +110,21 @@ export const VoiceChatBar: React.FC<VoiceChatBarProps> = ({ roomCode }) => {
       {/* Mic Mute / Unmute Button */}
       <button
         onClick={handleToggleMic}
-        className={`p-1.5 rounded-lg border transition-all flex items-center gap-1 shadow-sm ${
+        className={`p-1.5 border-2 transition-all flex items-center gap-1 shadow-[1px_1px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] ${
           !isConnected
-            ? 'bg-neutral-800 text-neutral-400 border-neutral-700 hover:text-white'
+            ? 'bg-neutral-950 text-neutral-400 border-neutral-700 hover:text-white'
             : isMicMuted
-            ? 'bg-rose-950/80 text-rose-300 border-rose-800 hover:bg-rose-900'
+            ? 'bg-rose-950 text-rose-300 border-rose-700 hover:bg-rose-900'
             : isLocallySpeaking
-            ? 'bg-emerald-600 text-white border-emerald-400 ring-2 ring-emerald-400/50 shadow-emerald-500/30'
-            : 'bg-emerald-950/80 text-emerald-300 border-emerald-700 hover:bg-emerald-900'
+            ? 'bg-emerald-500 text-black border-black shadow-[2px_2px_0px_#000]'
+            : 'bg-neutral-950 text-emerald-400 border-emerald-700 hover:bg-neutral-800'
         }`}
         title={!isConnected ? 'Connect microphone' : isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
       >
         {isMicMuted || !isConnected ? (
-          <MicOff className="w-3.5 h-3.5" />
+          <MicOff className="w-3 h-3" />
         ) : (
-          <Mic className={`w-3.5 h-3.5 ${isLocallySpeaking ? 'animate-bounce' : ''}`} />
+          <Mic className={`w-3 h-3 ${isLocallySpeaking ? 'animate-bounce' : ''}`} />
         )}
       </button>
 
@@ -132,20 +132,20 @@ export const VoiceChatBar: React.FC<VoiceChatBarProps> = ({ roomCode }) => {
       {isConnected && (
         <button
           onClick={handleToggleDeafen}
-          className={`p-1.5 rounded-lg border transition-all shadow-sm ${
+          className={`p-1.5 border-2 transition-all shadow-[1px_1px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] ${
             isDeafened
-              ? 'bg-rose-950/80 text-rose-300 border-rose-800 hover:bg-rose-900'
-              : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border-neutral-700 hover:text-white'
+              ? 'bg-rose-950 text-rose-300 border-rose-700 hover:bg-rose-900'
+              : 'bg-neutral-950 hover:bg-neutral-800 text-neutral-300 border-neutral-700 hover:text-white'
           }`}
           title={isDeafened ? 'Undeafen voice' : 'Deafen voice (mute all players)'}
         >
-          {isDeafened ? <VolumeX className="w-3.5 h-3.5" /> : <Headphones className="w-3.5 h-3.5" />}
+          {isDeafened ? <VolumeX className="w-3 h-3" /> : <Headphones className="w-3 h-3" />}
         </button>
       )}
 
       {/* Ephemeral warning tooltip if mic permission denied */}
       {micError && (
-        <div className="absolute top-12 right-4 px-3 py-1.5 rounded-lg bg-rose-900/95 border border-rose-600 text-white text-[11px] shadow-xl z-50 animate-fade-in">
+        <div className="absolute top-12 right-4 px-3 py-1.5 bg-rose-950 border-2 border-rose-600 text-white font-mono text-[11px] shadow-[4px_4px_0px_#000] z-50 animate-fadeIn">
           {micError}
         </div>
       )}

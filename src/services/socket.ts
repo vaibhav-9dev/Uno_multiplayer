@@ -62,7 +62,8 @@ export const socketClient = {
   createRoom: (
     name: string,
     avatar: string,
-    settings?: any
+    settings?: any,
+    accountUsername?: string
   ): Promise<{
     success: boolean;
     roomCode?: string;
@@ -76,6 +77,7 @@ export const socketClient = {
           avatar,
           sessionToken: getSessionToken(),
           settings,
+          accountUsername,
         },
         (response: any) => {
           if (response?.success && response.roomCode) {
@@ -91,7 +93,8 @@ export const socketClient = {
   joinRoom: (
     roomCode: string,
     name: string,
-    avatar: string
+    avatar: string,
+    accountUsername?: string
   ): Promise<{
     success: boolean;
     roomCode?: string;
@@ -105,6 +108,7 @@ export const socketClient = {
           name,
           avatar,
           sessionToken: getSessionToken(),
+          accountUsername,
         },
         (response: any) => {
           if (response?.success && response.roomCode) {
@@ -119,7 +123,8 @@ export const socketClient = {
 
   quickMatch: (
     name: string,
-    avatar: string
+    avatar: string,
+    accountUsername?: string
   ): Promise<{
     success: boolean;
     roomCode?: string;
@@ -133,6 +138,7 @@ export const socketClient = {
           name,
           avatar,
           sessionToken: getSessionToken(),
+          accountUsername,
         },
         (response: any) => {
           if (response?.success && response.roomCode) {
@@ -148,7 +154,8 @@ export const socketClient = {
   reconnect: (
     roomCode?: string,
     playerName?: string,
-    avatar?: string
+    avatar?: string,
+    accountUsername?: string
   ): Promise<{
     success: boolean;
     roomCode?: string;
@@ -161,6 +168,7 @@ export const socketClient = {
           roomCode: roomCode || getActiveRoom() || undefined,
           playerName,
           avatar,
+          accountUsername,
         },
         (response: any) => {
           if (!response?.success) {

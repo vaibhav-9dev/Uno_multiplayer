@@ -30,11 +30,12 @@ export class RoomManager {
     sessionToken: string,
     hostName: string,
     hostAvatar: string,
-    settings?: Partial<RoomSettings>
+    settings?: Partial<RoomSettings>,
+    accountUsername?: string
   ): UnoRoom {
     const code = this.generateRoomCode();
     const room = new UnoRoom(code, hostId, settings);
-    room.addPlayer(hostId, sessionToken, hostName, hostAvatar);
+    room.addPlayer(hostId, sessionToken, hostName, hostAvatar, accountUsername);
     this.rooms.set(code, room);
     this.sessionToRoom.set(sessionToken, code);
     return room;
@@ -68,7 +69,8 @@ export class RoomManager {
     playerId: string,
     sessionToken: string,
     name: string,
-    avatar: string
+    avatar: string,
+    accountUsername?: string
   ): { success: boolean; room?: UnoRoom; message?: string } {
     const code = roomCode.toUpperCase().trim();
     const room = this.rooms.get(code);
@@ -77,7 +79,7 @@ export class RoomManager {
       return { success: false, message: 'Room not found. Check your room code.' };
     }
 
-    const added = room.addPlayer(playerId, sessionToken, name, avatar);
+    const added = room.addPlayer(playerId, sessionToken, name, avatar, accountUsername);
     if (!added) {
       return {
         success: false,
@@ -95,31 +97,39 @@ export class RoomManager {
     playerId: string,
     sessionToken: string,
     name: string,
-    avatar: string
+    avatar: string,
+    accountUsername?: string
   ): { room: UnoRoom; isNew: boolean } {
     // Check if player already in an active room
     const existing = this.getRoomBySession(sessionToken);
     if (existing && existing.players.some((p) => p.sessionToken === sessionToken)) {
-      existing.addPlayer(playerId, sessionToken, name, avatar);
+      existing.addPlayer(playerId, sessionToken, name, avatar, accountUsername);
       return { room: existing, isNew: false };
     }
 
     // Look for public waiting room with available seats
     for (const room of this.rooms.values()) {
       if (!room.settings.isPrivate && room.status === 'waiting' && room.players.length < room.settings.maxPlayers) {
-        room.addPlayer(playerId, sessionToken, name, avatar);
+        room.addPlayer(playerId, sessionToken, name, avatar, accountUsername);
         this.sessionToRoom.set(sessionToken, room.roomCode);
         return { room, isNew: false };
       }
     }
 
     // Create a new public room
-    const newRoom = this.createRoom(playerId, sessionToken, name, avatar, {
-      isPrivate: false,
-      maxPlayers: 4,
-      targetScore: 500,
-      isSingleRound: false,
-    });
+    const newRoom = this.createRoom(
+      playerId,
+      sessionToken,
+      name,
+      avatar,
+      {
+        isPrivate: false,
+        maxPlayers: 4,
+        targetScore: 500,
+        isSingleRound: false,
+      },
+      accountUsername
+    );
     return { room: newRoom, isNew: true };
   }
 

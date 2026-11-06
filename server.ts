@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { roomManager } from './server/game/roomManager.ts';
 import { UnoRoom } from './server/game/unoRoom.ts';
+import { accountStore } from './server/db/accountStore.ts';
 import { ActiveColor } from './src/types/uno.ts';
 
 dotenv.config();
@@ -30,6 +31,13 @@ function broadcastRoomState(room: UnoRoom) {
     const socket = io.sockets.sockets.get(player.id);
     if (socket) {
       socket.emit('game:state', room.getClientState(player.id));
+      // If player has linked account, send updated user account info
+      if (player.accountUsername) {
+        const safeUser = accountStore.getUserByUsername(player.accountUsername);
+        if (safeUser) {
+          socket.emit('auth:user-update', { user: safeUser });
+        }
+      }
     }
   }
 }
@@ -55,6 +63,54 @@ app.get('/api/room/:code', (req, res) => {
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
+});
+
+// Authentication and Accounts REST API
+app.post('/api/auth/register', (req, res) => {
+  const { username, password, avatar } = req.body || {};
+  const result = accountStore.register(username, password, avatar);
+  if (!result.success) {
+    return res.status(400).json({ error: result.message });
+  }
+  return res.json({ token: result.token, user: result.user });
+});
+
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body || {};
+  const result = accountStore.login(username, password);
+  if (!result.success) {
+    return res.status(401).json({ error: result.message });
+  }
+  return res.json({ token: result.token, user: result.user });
+});
+
+app.get('/api/auth/me', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : (req.query.token as string);
+  if (!token) {
+    return res.status(401).json({ error: 'No authorization token provided' });
+  }
+  const user = accountStore.getUserByToken(token);
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid or expired session' });
+  }
+  return res.json({ user });
+});
+
+app.put('/api/auth/profile', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : (req.query.token as string);
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  const user = accountStore.getUserByToken(token);
+  if (!user) return res.status(401).json({ error: 'Invalid session' });
+
+  const updated = accountStore.updateProfile(user.username, req.body || {});
+  return res.json({ user: updated });
+});
+
+app.get('/api/leaderboard', (_req, res) => {
+  const leaderboard = accountStore.getLeaderboard(30);
+  res.json({ leaderboard });
 });
 
 // Socket.io real-time connection handling
@@ -156,7 +212,7 @@ io.on('connection', (socket: Socket) => {
   });
 
   // Reconnection or initial session check
-  socket.on('room:reconnect', (data: { sessionToken: string; roomCode?: string; playerName?: string; avatar?: string }, callback) => {
+  socket.on('room:reconnect', (data: { sessionToken: string; roomCode?: string; playerName?: string; avatar?: string; accountUsername?: string }, callback) => {
     sessionToken = data.sessionToken;
     let room: UnoRoom | undefined;
 
@@ -188,6 +244,7 @@ io.on('connection', (socket: Socket) => {
     player.isConnected = true;
     if (data.playerName) player.name = data.playerName;
     if (data.avatar) player.avatar = data.avatar;
+    if (data.accountUsername) player.accountUsername = data.accountUsername;
 
     currentRoomCode = room.roomCode;
     socket.join(room.roomCode);
@@ -209,14 +266,15 @@ io.on('connection', (socket: Socket) => {
   });
 
   // Create room
-  socket.on('room:create', (data: { name: string; avatar: string; sessionToken: string; settings?: any }, callback) => {
+  socket.on('room:create', (data: { name: string; avatar: string; sessionToken: string; settings?: any; accountUsername?: string }, callback) => {
     sessionToken = data.sessionToken;
     const room = roomManager.createRoom(
       socket.id,
       sessionToken,
       data.name || 'Host',
       data.avatar || 'fox',
-      data.settings
+      data.settings,
+      data.accountUsername
     );
 
     currentRoomCode = room.roomCode;
@@ -227,9 +285,16 @@ io.on('connection', (socket: Socket) => {
   });
 
   // Join room
-  socket.on('room:join', (data: { roomCode: string; name: string; avatar: string; sessionToken: string }, callback) => {
+  socket.on('room:join', (data: { roomCode: string; name: string; avatar: string; sessionToken: string; accountUsername?: string }, callback) => {
     sessionToken = data.sessionToken;
-    const res = roomManager.joinRoom(data.roomCode, socket.id, sessionToken, data.name || 'Player', data.avatar || 'bear');
+    const res = roomManager.joinRoom(
+      data.roomCode,
+      socket.id,
+      sessionToken,
+      data.name || 'Player',
+      data.avatar || 'bear',
+      data.accountUsername
+    );
     if (!res.success || !res.room) {
       return callback?.({ success: false, message: res.message });
     }
@@ -242,9 +307,15 @@ io.on('connection', (socket: Socket) => {
   });
 
   // Quick match
-  socket.on('room:quick-match', (data: { name: string; avatar: string; sessionToken: string }, callback) => {
+  socket.on('room:quick-match', (data: { name: string; avatar: string; sessionToken: string; accountUsername?: string }, callback) => {
     sessionToken = data.sessionToken;
-    const { room, isNew } = roomManager.findQuickMatch(socket.id, sessionToken, data.name || 'Player', data.avatar || 'panda');
+    const { room, isNew } = roomManager.findQuickMatch(
+      socket.id,
+      sessionToken,
+      data.name || 'Player',
+      data.avatar || 'panda',
+      data.accountUsername
+    );
 
     currentRoomCode = room.roomCode;
     socket.join(room.roomCode);

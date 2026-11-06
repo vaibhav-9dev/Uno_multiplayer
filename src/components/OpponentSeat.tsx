@@ -32,7 +32,7 @@ export const OpponentSeat: React.FC<OpponentSeatProps> = ({
   const [, setVoiceTick] = useState(0);
 
   useEffect(() => {
-    // Listen to voice events (speaking, mute changes, etc.)
+    // Listen to voice events
     return voiceChatService.subscribe(() => {
       setVoiceTick((t) => t + 1);
     });
@@ -42,58 +42,67 @@ export const OpponentSeat: React.FC<OpponentSeatProps> = ({
   const isPeerMuted = voiceChatService.isPeerMuted(player.id);
   const isLocallyMuted = voiceChatService.isPeerLocallyMuted(player.id);
 
-  // Cap visible rendered card fan to 10 so it doesn't overflow screen, but show actual badge count
+  // Cap visible rendered card fan to 8 so it fits nicely
   const visibleCardsCount = Math.min(player.cardCount, 8);
 
   return (
     <div
-      className={`flex flex-col items-center transition-all duration-300 ${
+      className={`flex flex-col items-center transition-all duration-200 ${
         position === 'left' ? 'sm:items-start' : position === 'right' ? 'sm:items-end' : 'items-center'
       }`}
     >
-      {/* Player Header Card */}
+      {/* Player Header Box (Sharp Engineered Plaque) */}
       <div
-        className={`relative flex items-center gap-2.5 px-3.5 py-2 rounded-2xl backdrop-blur-md transition-all duration-300 shadow-xl ${
+        className={`relative flex items-center gap-2.5 px-3 py-2 border-2 transition-all duration-150 ${
           isSpeaking
-            ? 'bg-neutral-900/95 border-2 border-emerald-400 ring-4 ring-emerald-400/40 shadow-emerald-500/30 scale-105'
+            ? 'bg-neutral-900 border-emerald-400 shadow-[4px_4px_0px_#059669]'
             : isActiveTurn
-            ? 'bg-neutral-900/90 border-2 border-amber-400 ring-4 ring-amber-400/30 scale-105'
-            : 'bg-neutral-950/70 border border-neutral-700/60'
+            ? 'bg-neutral-900 border-amber-400 shadow-[4px_4px_0px_#d97706]'
+            : 'bg-neutral-950 border-neutral-800 shadow-[3px_3px_0px_#000]'
         }`}
       >
-        {/* Avatar with status glow & voice ripple */}
+        {/* Avatar with status border */}
         <div className="relative">
           <div
-            className={`w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center text-xl md:text-2xl border-2 transition-all ${
+            className={`w-9 h-9 border-2 flex items-center justify-center text-xl transition-all ${
               isSpeaking
-                ? 'bg-emerald-500/30 border-emerald-400 ring-4 ring-emerald-400/60 shadow-lg'
+                ? 'bg-emerald-950 border-emerald-400 text-emerald-300'
                 : !player.isConnected
-                ? 'bg-rose-950/60 border-rose-500 opacity-60'
+                ? 'bg-rose-950 border-rose-500 opacity-60'
                 : isActiveTurn
-                ? 'bg-amber-500/20 border-amber-400'
-                : 'bg-neutral-800 border-neutral-600'
+                ? 'bg-amber-950 border-amber-400'
+                : 'bg-neutral-900 border-neutral-700'
             }`}
           >
             {avatarEmoji}
           </div>
 
-          {/* Active Speaking Badge */}
+          {/* Active Speaking Pip */}
           {isSpeaking && (
-            <div className="absolute -top-1 -right-1 p-0.5 rounded-full bg-emerald-500 text-black shadow-md animate-pulse" title="Speaking">
-              <Radio className="w-3 h-3" />
+            <div
+              className="absolute -top-1.5 -right-1.5 p-0.5 bg-emerald-500 text-black border border-black shadow-[1px_1px_0px_#000]"
+              title="Speaking"
+            >
+              <Radio className="w-2.5 h-2.5" />
             </div>
           )}
 
-          {/* Mic Muted Badge */}
+          {/* Mic Muted Pip */}
           {isPeerMuted && !isSpeaking && (
-            <div className="absolute -bottom-1 -right-1 p-0.5 rounded-full bg-neutral-800 border border-neutral-600 text-neutral-400" title="Microphone Muted">
+            <div
+              className="absolute -bottom-1 -right-1 p-0.5 bg-neutral-900 border border-neutral-700 text-neutral-400"
+              title="Microphone Muted"
+            >
               <MicOff className="w-2.5 h-2.5" />
             </div>
           )}
 
           {!player.isConnected && (
-            <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-rose-600 text-white shadow-md animate-pulse" title="Player Disconnected">
-              <WifiOff className="w-3.5 h-3.5" />
+            <div
+              className="absolute -bottom-1 -right-1 p-0.5 bg-rose-600 text-white border border-black animate-pulse"
+              title="Player Disconnected"
+            >
+              <WifiOff className="w-2.5 h-2.5" />
             </div>
           )}
         </div>
@@ -101,39 +110,37 @@ export const OpponentSeat: React.FC<OpponentSeatProps> = ({
         {/* Name and card count info */}
         <div>
           <div className="flex items-center gap-1.5">
-            <span className="font-bold text-xs md:text-sm text-white max-w-[100px] truncate">
+            <span className="font-mono font-bold text-xs md:text-sm text-white max-w-[95px] truncate">
               {player.name}
             </span>
             {isHost && (
-              <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40">
+              <span className="text-[9px] font-mono px-1 py-0.2 bg-amber-400 text-black font-black uppercase">
                 HOST
               </span>
             )}
-            {/* Quick local mute button for this noisy opponent */}
+            {/* Quick local mute button */}
             <button
               onClick={() => voiceChatService.toggleMutePeerLocally(player.id)}
-              className={`p-1 rounded-md text-[10px] transition ${
+              className={`p-0.5 text-[10px] border transition ${
                 isLocallyMuted
-                  ? 'bg-rose-900/60 text-rose-300 hover:bg-rose-800'
-                  : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800'
+                  ? 'bg-rose-950 border-rose-600 text-rose-300'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-300 hover:border-neutral-700'
               }`}
-              title={isLocallyMuted ? `Unmute ${player.name} for you` : `Mute ${player.name} for you`}
+              title={isLocallyMuted ? `Unmute ${player.name}` : `Mute ${player.name}`}
             >
-              {isLocallyMuted ? <VolumeX className="w-3 h-3 text-rose-400" /> : <Volume2 className="w-3 h-3 opacity-60 hover:opacity-100" />}
+              {isLocallyMuted ? <VolumeX className="w-3 h-3 text-rose-400" /> : <Volume2 className="w-3 h-3" />}
             </button>
           </div>
 
-          <div className="flex items-center gap-2 text-[11px] text-neutral-300">
+          <div className="flex items-center gap-2 font-mono text-[10px] text-neutral-400 mt-0.5">
             {!player.isConnected ? (
-              <span className="font-bold text-rose-400 text-[10px] animate-pulse">
-                Disconnected
-              </span>
+              <span className="font-bold text-rose-400 animate-pulse">[DISCONNECTED]</span>
             ) : (
               <>
-                <span className="font-bold text-white bg-neutral-800/80 px-1.5 py-0.5 rounded text-[10px] border border-neutral-700">
-                  {player.cardCount} {player.cardCount === 1 ? 'card' : 'cards'}
+                <span className="font-bold text-white bg-neutral-900 px-1 py-0.2 border border-neutral-800">
+                  {player.cardCount} {player.cardCount === 1 ? 'CARD' : 'CARDS'}
                 </span>
-                <span className="text-neutral-400 text-[10px]">{player.totalScore} pts</span>
+                <span className="text-amber-400 font-bold">{player.totalScore} PTS</span>
               </>
             )}
           </div>
@@ -141,39 +148,38 @@ export const OpponentSeat: React.FC<OpponentSeatProps> = ({
 
         {/* UNO Called Flame Badge */}
         {player.calledUno && (
-          <div className="px-2 py-0.5 rounded-full bg-gradient-to-r from-red-600 to-amber-500 text-white text-[10px] font-black flex items-center gap-1 shadow-md animate-bounce">
-            <Flame className="w-3 h-3" />
+          <div className="px-1.5 py-0.5 bg-rose-600 border border-white text-white font-mono text-[9px] font-black flex items-center gap-1 shadow-[2px_2px_0px_#000] animate-bounce">
+            <Flame className="w-2.5 h-2.5 text-amber-300" />
             UNO!
           </div>
         )}
 
-        {/* Active turn indicator pulse */}
+        {/* Active turn indicator tag */}
         {isActiveTurn && (
-          <div className="absolute -top-2.5 right-2 px-2 py-0.5 rounded-full bg-amber-400 text-black text-[9px] font-black uppercase tracking-wider animate-pulse shadow-md">
-            Thinking...
+          <div className="absolute -top-2.5 right-1 px-1.5 py-0.2 bg-amber-400 border border-black text-black font-mono text-[9px] font-black uppercase tracking-wider shadow-[2px_2px_0px_#000]">
+            TURN
           </div>
         )}
       </div>
 
-      {/* 3D Overlapping Card Fan */}
+      {/* Overlapping Card Fan */}
       {player.cardCount > 0 && (
-        <div className="relative flex items-center justify-center h-16 md:h-20 mt-1 px-4">
+        <div className="relative flex items-center justify-center h-14 md:h-16 mt-1 px-3">
           {Array.from({ length: visibleCardsCount }).map((_, index) => {
             const total = visibleCardsCount;
-            // Fan rotation angle between -20deg and +20deg
-            const angle = total > 1 ? -18 + (36 / (total - 1)) * index : 0;
-            const offsetX = total > 1 ? -12 * (total - 1) * 0.5 + index * 12 : 0;
+            const angle = total > 1 ? -16 + (32 / (total - 1)) * index : 0;
+            const offsetX = total > 1 ? -10 * (total - 1) * 0.5 + index * 10 : 0;
 
             return (
               <div
                 key={index}
-                className="absolute transition-transform duration-200"
+                className="absolute transition-transform duration-150"
                 style={{
                   transform: `translateX(${offsetX}px) rotate(${angle}deg)`,
                   zIndex: index,
                 }}
               >
-                <CardView isFaceDown size="xs" className="shadow-md pointer-events-none" />
+                <CardView isFaceDown size="xs" className="pointer-events-none" />
               </div>
             );
           })}

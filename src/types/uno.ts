@@ -20,6 +20,19 @@ export interface Card {
   score: number; // Face value: 0-9, action: 20, wild: 50
 }
 
+export interface UserAccountProfile {
+  username: string;
+  displayName: string;
+  avatar: string;
+  totalScore: number;
+  matchesPlayed: number;
+  matchesWon: number;
+  roundsWon: number;
+  unoShouts: number;
+  createdAt: number;
+  lastActiveAt: number;
+}
+
 export interface PlayerPublicInfo {
   id: string;
   name: string;
@@ -31,6 +44,7 @@ export interface PlayerPublicInfo {
   score: number;
   totalScore: number; // For match play
   roundWins: number;
+  accountUsername?: string;
 }
 
 export interface PlayerPrivateInfo extends PlayerPublicInfo {

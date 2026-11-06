@@ -9,7 +9,6 @@ import { ChallengeModal } from './ChallengeModal.tsx';
 import { ScoreboardModal } from './ScoreboardModal.tsx';
 import { HowToPlayModal } from './HowToPlayModal.tsx';
 import { VoiceChatBar } from './VoiceChatBar.tsx';
-import { voiceChatService } from '../services/voiceChat.ts';
 import {
   Volume2,
   VolumeX,
@@ -41,16 +40,16 @@ interface GameTableProps {
 }
 
 const COLOR_BORDER_MAP: Record<ActiveColor, string> = {
-  red: 'border-red-500 shadow-red-500/50',
-  blue: 'border-blue-500 shadow-blue-500/50',
-  green: 'border-emerald-500 shadow-emerald-500/50',
-  yellow: 'border-amber-400 shadow-amber-400/50',
+  red: 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]',
+  blue: 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]',
+  green: 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]',
+  yellow: 'border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.5)]',
 };
 
 const COLOR_BG_MAP: Record<ActiveColor, string> = {
-  red: 'bg-red-600',
-  blue: 'bg-blue-600',
-  green: 'bg-emerald-600',
+  red: 'bg-red-600 text-white',
+  blue: 'bg-blue-600 text-white',
+  green: 'bg-emerald-600 text-white',
   yellow: 'bg-amber-400 text-black',
 };
 
@@ -64,7 +63,6 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
   const [unoAlertText, setUnoAlertText] = useState<string | null>(null);
   const [recentChatReaction, setRecentChatReaction] = useState<{ name: string; text: string } | null>(null);
   const [chatInputText, setChatInputText] = useState('');
-  const [showQuickPhrases, setShowQuickPhrases] = useState(false);
   const [dropSeconds, setDropSeconds] = useState(0);
   const [turnSecondsRemaining, setTurnSecondsRemaining] = useState(180);
 
@@ -247,17 +245,14 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-gradient-to-b from-emerald-950 via-neutral-950 to-emerald-950 text-white flex flex-col justify-between overflow-x-hidden select-none">
-      {/* Background table felt texture effect */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-900/40 via-neutral-950/80 to-black pointer-events-none" />
-
-      {/* Top Header Bar */}
-      <header className="relative z-20 flex items-center justify-between px-3 md:px-6 py-2.5 bg-neutral-950/85 backdrop-blur-md border-b border-neutral-800 shadow-md">
+    <div className="relative min-h-screen w-full bg-neutral-950 text-white flex flex-col justify-between overflow-x-hidden select-none">
+      {/* Top Header Bar (Sharp Box) */}
+      <header className="relative z-20 flex items-center justify-between px-3 md:px-6 py-2.5 bg-neutral-950 border-b-2 border-neutral-800 shadow-[0_2px_0px_#000]">
         {/* Left: Room Code & Link */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-700 shadow-inner">
-            <span className="text-xs text-neutral-400 font-bold uppercase">Room:</span>
-            <span className="text-sm font-black text-amber-400 tracking-wider font-mono">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-900 border-2 border-neutral-700 shadow-[2px_2px_0px_#000]">
+            <span className="font-mono text-xs text-neutral-400 font-bold uppercase">ROOM:</span>
+            <span className="font-mono text-sm font-black text-amber-400 tracking-wider">
               {gameState.roomCode}
             </span>
             <button
@@ -269,25 +264,25 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
             </button>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 text-xs text-neutral-400">
-            <span className="px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-800">
-              {gameState.settings.isSingleRound ? 'Single Round' : `Target: ${gameState.settings.targetScore} pts`}
+          <div className="hidden sm:flex items-center gap-2 font-mono text-xs text-neutral-400">
+            <span className="px-2.5 py-1 bg-neutral-900 border border-neutral-800">
+              {gameState.settings.isSingleRound ? 'SINGLE ROUND' : `TARGET: ${gameState.settings.targetScore} PTS`}
             </span>
           </div>
         </div>
 
-        {/* Center: Turn Direction Indicator */}
+        {/* Center: Turn Direction Indicator (Sharp Plaque) */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-neutral-900/90 border border-neutral-700 text-xs font-bold text-neutral-200 shadow-sm">
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-neutral-900 border-2 border-neutral-700 font-mono text-xs font-bold text-neutral-200 shadow-[2px_2px_0px_#000]">
             {gameState.turnDirection === 1 ? (
               <>
-                <RotateCw className="w-4 h-4 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
-                <span className="hidden md:inline">Clockwise</span>
+                <RotateCw className="w-3.5 h-3.5 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
+                <span className="hidden md:inline uppercase">CLOCKWISE</span>
               </>
             ) : (
               <>
-                <RotateCcw className="w-4 h-4 text-blue-400 animate-spin" style={{ animationDuration: '6s' }} />
-                <span className="hidden md:inline">Counter-Clockwise</span>
+                <RotateCcw className="w-3.5 h-3.5 text-blue-400 animate-spin" style={{ animationDuration: '6s' }} />
+                <span className="hidden md:inline uppercase">COUNTER-CLOCKWISE</span>
               </>
             )}
           </div>
@@ -300,7 +295,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
 
           <button
             onClick={handleToggleMute}
-            className="p-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-300 hover:text-white transition"
+            className="p-2 bg-neutral-900 hover:bg-neutral-800 border-2 border-neutral-700 text-neutral-300 hover:text-white shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition"
             title={isMuted ? 'Unmute Sound Effects' : 'Mute Sound Effects'}
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4" />}
@@ -317,22 +312,22 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                   socketClient.pauseMatch();
                 }
               }}
-              className={`px-2.5 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-1 shadow-sm ${
+              className={`px-2.5 py-1.5 border-2 font-mono text-xs font-bold uppercase transition flex items-center gap-1 shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] ${
                 gameState.isPaused
-                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400 animate-pulse'
+                  ? 'bg-emerald-500 hover:bg-emerald-400 text-black border-black animate-pulse'
                   : 'bg-neutral-900 hover:bg-neutral-800 border-neutral-700 text-neutral-300 hover:text-white'
               }`}
               title={gameState.isPaused ? 'Resume Match' : 'Pause Match'}
             >
               {gameState.isPaused ? (
                 <>
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Resume</span>
+                  <Play className="w-3 h-3 fill-current" />
+                  <span>RESUME</span>
                 </>
               ) : (
                 <>
-                  <Pause className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Pause</span>
+                  <Pause className="w-3 h-3" />
+                  <span className="hidden sm:inline">PAUSE</span>
                 </>
               )}
             </button>
@@ -343,7 +338,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
               soundService.play('click');
               setShowHowToPlay(true);
             }}
-            className="p-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-300 hover:text-white transition"
+            className="p-2 bg-neutral-900 hover:bg-neutral-800 border-2 border-neutral-700 text-neutral-300 hover:text-white shadow-[2px_2px_0px_#000] transition"
             title="Rules & How to Play"
           >
             <HelpCircle className="w-4 h-4 text-amber-400" />
@@ -356,11 +351,11 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                 soundService.play('click');
                 setShowAbortConfirm(true);
               }}
-              className="px-2.5 py-2 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-600/80 text-amber-300 hover:text-amber-100 transition flex items-center gap-1 text-xs font-bold shadow-sm"
+              className="px-2.5 py-1.5 bg-neutral-950 hover:bg-rose-950/60 border-2 border-rose-700 text-rose-300 hover:text-white transition flex items-center gap-1 font-mono text-xs font-bold uppercase shadow-[2px_2px_0px_#000]"
               title="Abort Match"
             >
-              <StopCircle className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline">Abort</span>
+              <StopCircle className="w-3.5 h-3.5 text-rose-400" />
+              <span className="hidden sm:inline">ABORT</span>
             </button>
           )}
 
@@ -369,7 +364,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
               soundService.play('click');
               onLeaveRoom();
             }}
-            className="p-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800 text-rose-300 hover:text-rose-100 transition"
+            className="p-2 bg-neutral-950 hover:bg-neutral-800 border-2 border-neutral-700 text-neutral-300 hover:text-white shadow-[2px_2px_0px_#000] transition"
             title="Leave Room"
           >
             <LogOut className="w-4 h-4" />
@@ -377,13 +372,13 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
         </div>
       </header>
 
-      {/* Disconnected Player Alert Banner */}
+      {/* Disconnected Player Alert Banner (Sharp Box) */}
       {gameState.disconnectedPlayer && gameState.status === 'in_progress' && (
-        <div className="relative z-30 w-full bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 text-black px-4 py-2.5 shadow-xl flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
-          <div className="flex items-center gap-2 font-bold text-xs md:text-sm">
+        <div className="relative z-30 w-full bg-amber-400 text-black px-4 py-2 border-b-2 border-black font-mono font-bold text-xs md:text-sm shadow-[0_3px_0px_#000] flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-black shrink-0 animate-bounce" />
             <span>
-              <strong>{gameState.disconnectedPlayer.name}</strong> lost connection ({dropSeconds}s ago). Waiting for reconnection...
+              [ALERT] <strong>{gameState.disconnectedPlayer.name.toUpperCase()}</strong> lost connection ({dropSeconds}s ago). Waiting for reconnection...
             </span>
           </div>
 
@@ -394,10 +389,10 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                   soundService.play('click');
                   socketClient.skipTurn();
                 }}
-                className="px-3 py-1 rounded-xl bg-black text-amber-300 hover:bg-neutral-900 text-xs font-black transition flex items-center gap-1 shadow-md"
+                className="px-3 py-1 bg-black text-amber-300 hover:bg-neutral-800 text-xs font-mono font-black uppercase transition flex items-center gap-1 shadow-[2px_2px_0px_#000]"
               >
                 <FastForward className="w-3.5 h-3.5" />
-                Skip Turn
+                SKIP TURN
               </button>
             )}
 
@@ -406,10 +401,10 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                 soundService.play('click');
                 setShowAbortConfirm(true);
               }}
-              className="px-3 py-1 rounded-xl bg-red-950 text-red-200 hover:bg-red-900 text-xs font-black transition flex items-center gap-1 shadow-md border border-red-700"
+              className="px-3 py-1 bg-red-950 text-white hover:bg-red-900 text-xs font-mono font-black uppercase transition flex items-center gap-1 shadow-[2px_2px_0px_#000] border border-black"
             >
               <StopCircle className="w-3.5 h-3.5" />
-              Abort Match
+              ABORT MATCH
             </button>
           </div>
         </div>
@@ -417,11 +412,11 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
 
       {/* Only One Active Player Left Alert Banner */}
       {gameState.onlyOnePlayerLeft && gameState.status === 'in_progress' && (
-        <div className="relative z-30 w-full bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white px-4 py-2.5 shadow-xl flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
-          <div className="flex items-center gap-2 font-bold text-xs md:text-sm">
+        <div className="relative z-30 w-full bg-rose-600 text-white px-4 py-2 border-b-2 border-black font-mono font-bold text-xs md:text-sm shadow-[0_3px_0px_#000] flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-yellow-300 shrink-0 animate-bounce" />
             <span>
-              All opponents have disconnected! You can wait or abort the match now.
+              [ALERT] All opponents disconnected. You can wait or end the match.
             </span>
           </div>
 
@@ -430,19 +425,19 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
               soundService.play('click');
               socketClient.abortMatch('Match ended: Only 1 active player remained.');
             }}
-            className="px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-900 text-yellow-300 font-black text-xs transition flex items-center gap-1.5 shadow-lg border border-yellow-400/40"
+            className="px-3 py-1 bg-black text-white hover:bg-neutral-900 font-mono font-black text-xs uppercase transition border border-white shadow-[2px_2px_0px_#000]"
           >
             <StopCircle className="w-3.5 h-3.5" />
-            <span>Exit & Abort Match</span>
+            <span>EXIT & ABORT</span>
           </button>
         </div>
       )}
 
       {/* Floating Big UNO Alert Notification */}
       {unoAlertText && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 animate-bounce pointer-events-none">
-          <div className="px-6 py-2.5 rounded-full bg-gradient-to-r from-red-600 via-amber-500 to-red-600 text-white font-black text-lg shadow-[0_0_30px_rgba(245,158,11,0.6)] border-2 border-white flex items-center gap-2">
-            <Flame className="w-6 h-6 text-yellow-200" />
+        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 animate-bounce pointer-events-none">
+          <div className="px-5 py-2 bg-red-600 text-white font-mono font-black text-base border-2 border-amber-300 shadow-[5px_5px_0px_#000] flex items-center gap-2">
+            <Flame className="w-5 h-5 text-amber-300" />
             {unoAlertText}
           </div>
         </div>
@@ -450,8 +445,8 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
 
       {/* Floating Reaction Emote Bubble */}
       {recentChatReaction && (
-        <div className="fixed top-28 left-1/2 -translate-x-1/2 z-40 animate-fadeIn pointer-events-none">
-          <div className="px-4 py-2 rounded-2xl bg-neutral-900/90 border border-neutral-700 shadow-2xl backdrop-blur-md flex items-center gap-2">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-40 animate-fadeIn pointer-events-none">
+          <div className="px-3.5 py-1.5 bg-neutral-900 border-2 border-neutral-700 shadow-[4px_4px_0px_#000] flex items-center gap-2 font-mono">
             <span className="text-xs font-bold text-neutral-400">{recentChatReaction.name}:</span>
             <span className="text-xl">{recentChatReaction.text}</span>
           </div>
@@ -460,41 +455,41 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
 
       {/* MAIN GAME TABLE / WAITING ROOM */}
       {gameState.status === 'waiting' ? (
-        /* ================= WAITING LOBBY ================= */
+        /* ================= WAITING LOBBY (Sharp Brutalist Box) ================= */
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-4 max-w-xl mx-auto w-full text-center">
-          <div className="w-full rounded-3xl bg-neutral-900/90 border-2 border-neutral-800 p-6 md:p-8 shadow-2xl backdrop-blur-md">
-            <div className="inline-flex p-3 rounded-2xl bg-emerald-500/20 border border-emerald-400 mb-4 text-emerald-400">
-              <Users className="w-8 h-8" />
+          <div className="w-full bg-neutral-900 border-2 border-neutral-700 p-6 md:p-8 shadow-[6px_6px_0px_#000]">
+            <div className="inline-flex p-3 bg-emerald-950 border-2 border-emerald-500 mb-3 text-emerald-400 shadow-[2px_2px_0px_#000]">
+              <Users className="w-7 h-7" />
             </div>
 
-            <h2 className="text-2xl md:text-3xl font-black text-white uppercase tracking-wider mb-2">
-              Waiting for Players
+            <h2 className="font-mono text-xl md:text-2xl font-black text-white uppercase tracking-wider mb-1">
+              WAITING FOR PLAYERS
             </h2>
-            <p className="text-xs md:text-sm text-neutral-400 mb-6">
-              Share the Room Code with friends to join! Need 2 to 4 players.
+            <p className="font-mono text-xs text-neutral-400 mb-5">
+              Share the Room Code to invite opponents. Requires 2 to 4 players.
             </p>
 
-            {/* Room Code Card */}
+            {/* Room Code Card (Sharp Box) */}
             <div
               onClick={handleCopyRoom}
-              className="group cursor-pointer flex items-center justify-between p-4 rounded-2xl bg-neutral-950 border border-neutral-800 hover:border-amber-400/60 transition mb-6 shadow-inner"
+              className="cursor-pointer flex items-center justify-between p-3.5 bg-neutral-950 border-2 border-neutral-800 hover:border-amber-400 transition mb-5 shadow-[3px_3px_0px_#000]"
             >
-              <div className="text-left">
-                <span className="text-xs text-neutral-500 block uppercase font-bold">Room Code</span>
-                <span className="text-2xl font-black text-amber-400 font-mono tracking-widest">
+              <div className="text-left font-mono">
+                <span className="text-[10px] text-neutral-500 block uppercase font-bold">INVITE ROOM CODE</span>
+                <span className="text-2xl font-black text-amber-400 tracking-widest">
                   {gameState.roomCode}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neutral-800 text-xs font-bold text-neutral-300 group-hover:bg-amber-400 group-hover:text-black transition shadow-sm">
-                {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedCode ? 'Copied Link!' : 'Copy Invite Link'}</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-amber-400 hover:text-black text-neutral-200 border border-neutral-700 font-mono text-xs font-bold uppercase transition">
+                {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedCode ? 'LINK COPIED!' : 'COPY LINK'}</span>
               </div>
             </div>
 
             {/* Player Seats List */}
-            <div className="space-y-2.5 mb-6 text-left">
-              <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider block mb-1">
-                Players in Room ({gameState.players.length}/{gameState.settings.maxPlayers})
+            <div className="space-y-2 mb-6 text-left">
+              <span className="font-mono text-xs font-bold text-neutral-400 uppercase tracking-wider block mb-1">
+                SEATS ({gameState.players.length}/{gameState.settings.maxPlayers})
               </span>
               {gameState.players.map((p) => {
                 const isPlayerHost = p.id === gameState.hostId;
@@ -502,43 +497,59 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                 return (
                   <div
                     key={p.id}
-                    className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                    className={`flex items-center justify-between p-2.5 border-2 font-mono transition ${
                       isCurrentMe
-                        ? 'bg-neutral-800/80 border-amber-400/50 shadow-md'
-                        : 'bg-neutral-950/60 border-neutral-800'
+                        ? 'bg-neutral-950 border-amber-400 shadow-[2px_2px_0px_#000]'
+                        : 'bg-neutral-950 border-neutral-800'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">
-                        {p.avatar === 'fox' ? '🦊' : p.avatar === 'bear' ? '🐻' : p.avatar === 'panda' ? '🐼' : p.avatar === 'lion' ? '🦁' : p.avatar === 'tiger' ? '🐯' : p.avatar === 'rabbit' ? '🐰' : p.avatar === 'dragon' ? '🐲' : '⚡'}
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xl">
+                        {p.avatar === 'bear'
+                          ? '🐻'
+                          : p.avatar === 'panda'
+                          ? '🐼'
+                          : p.avatar === 'lion'
+                          ? '🦁'
+                          : p.avatar === 'tiger'
+                          ? '🐯'
+                          : p.avatar === 'rabbit'
+                          ? '🐰'
+                          : p.avatar === 'dragon'
+                          ? '🐲'
+                          : p.avatar === 'spark'
+                          ? '⚡'
+                          : '🦊'}
                       </span>
                       <div>
-                        <div className="font-bold text-sm text-white flex items-center gap-2">
+                        <div className="font-bold text-xs md:text-sm text-white flex items-center gap-1.5">
                           {p.name}
                           {isCurrentMe && (
-                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-neutral-700 text-neutral-300">You</span>
+                            <span className="text-[9px] px-1 bg-neutral-800 text-neutral-300 border border-neutral-700">
+                              YOU
+                            </span>
                           )}
                           {isPlayerHost && (
-                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                              Host
+                            <span className="text-[9px] px-1 bg-amber-400 text-black font-black uppercase">
+                              HOST
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-neutral-400">
-                          {p.isConnected ? 'Connected' : 'Disconnected'}
+                        <div className="text-[10px] text-neutral-500">
+                          {p.isConnected ? 'CONNECTED' : 'DISCONNECTED'}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div>
                       {p.isReady ? (
-                        <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-800/80 font-bold flex items-center gap-1">
-                          <Check className="w-3.5 h-3.5" />
-                          Ready
+                        <span className="font-mono text-[10px] px-2 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-600 font-bold uppercase flex items-center gap-1">
+                          <Check className="w-3 h-3" />
+                          READY
                         </span>
                       ) : (
-                        <span className="text-xs px-2.5 py-1 rounded-full bg-neutral-900 text-neutral-400 border border-neutral-800 font-medium">
-                          Waiting
+                        <span className="font-mono text-[10px] px-2 py-0.5 bg-neutral-900 text-neutral-500 border border-neutral-800 uppercase">
+                          WAITING
                         </span>
                       )}
                     </div>
@@ -555,19 +566,19 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                   soundService.play('click');
                   socketClient.startGame();
                 }}
-                className={`w-full py-4 px-6 rounded-2xl font-black text-base shadow-xl flex items-center justify-center gap-2 transition-all duration-200 ${
+                className={`w-full py-3.5 border-2 font-mono font-black text-xs md:text-sm uppercase tracking-wider shadow-[4px_4px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition flex items-center justify-center gap-2 ${
                   gameState.players.length >= 2
-                    ? 'bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 hover:from-emerald-400 hover:to-green-400 text-white hover:scale-[1.02] active:scale-[0.98]'
-                    : 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
+                    ? 'bg-emerald-500 hover:bg-emerald-400 border-black text-black'
+                    : 'bg-neutral-800 text-neutral-500 border-neutral-700 cursor-not-allowed'
                 }`}
               >
-                <Play className="w-5 h-5 fill-current" />
+                <Play className="w-4 h-4 fill-current" />
                 {gameState.players.length >= 2
-                  ? 'START UNO GAME'
-                  : `WAITING FOR PLAYERS (Need at least 2)`}
+                  ? 'START UNO MATCH'
+                  : 'NEED AT LEAST 2 PLAYERS TO START'}
               </button>
             ) : (
-              <div className="py-4 px-6 rounded-2xl bg-neutral-950 border border-neutral-800 text-sm text-neutral-400 flex items-center justify-center gap-2 animate-pulse">
+              <div className="py-3 px-4 bg-neutral-950 border-2 border-neutral-800 text-xs font-mono text-neutral-400 flex items-center justify-center gap-2 animate-pulse">
                 <span>Waiting for host to start the game...</span>
               </div>
             )}
@@ -583,25 +594,25 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
 
           {/* Center Table Play Area */}
           <div className="relative flex flex-col items-center justify-center my-auto py-2">
-            {/* Active Turn Banner + 3-minute Turn Countdown Timer */}
+            {/* Active Turn Banner + Turn Countdown Timer */}
             <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
               <div
-                className={`px-4 py-1.5 rounded-full border text-xs md:text-sm font-black uppercase tracking-wider shadow-lg flex items-center gap-2 transition-all ${
+                className={`px-3.5 py-1 border-2 font-mono text-xs font-black uppercase tracking-wider shadow-[3px_3px_0px_#000] flex items-center gap-2 transition-all ${
                   isMyTurn
-                    ? 'bg-amber-400 text-black border-amber-300 ring-4 ring-amber-400/40 animate-pulse'
-                    : 'bg-neutral-900/90 text-neutral-300 border-neutral-700'
+                    ? 'bg-amber-400 text-black border-black shadow-[4px_4px_0px_#d97706] animate-pulse'
+                    : 'bg-neutral-900 text-neutral-300 border-neutral-700'
                 }`}
               >
                 {isMyTurn ? (
                   <>
-                    <Flame className="w-4 h-4 text-red-600 animate-bounce" />
-                    <span>IT'S YOUR TURN!</span>
+                    <Flame className="w-3.5 h-3.5 text-red-600 fill-current animate-bounce" />
+                    <span>YOUR TURN TO PLAY</span>
                   </>
                 ) : (
                   <>
-                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+                    <span className="w-2 h-2 bg-amber-400 animate-ping" />
                     <span>
-                      {gameState.players.find((p) => p.id === gameState.activePlayerId)?.name || 'Player'}'s turn
+                      {gameState.players.find((p) => p.id === gameState.activePlayerId)?.name.toUpperCase() || 'PLAYER'}'S TURN
                     </span>
                   </>
                 )}
@@ -610,14 +621,14 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
               {/* 3-Minute Turn Limit Timer */}
               {gameState.status === 'in_progress' && (
                 <div
-                  className={`px-3 py-1.5 rounded-full border text-xs font-mono font-bold flex items-center gap-1.5 shadow-md ${
+                  className={`px-2.5 py-1 border-2 text-xs font-mono font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#000] ${
                     turnSecondsRemaining <= 30
-                      ? 'bg-red-950/90 border-red-500 text-red-300 animate-pulse ring-2 ring-red-500/50'
-                      : 'bg-neutral-900/90 border-neutral-700 text-neutral-300'
+                      ? 'bg-rose-950 border-rose-500 text-rose-300 animate-pulse'
+                      : 'bg-neutral-900 border-neutral-700 text-neutral-300'
                   }`}
-                  title="3-minute turn timer limit"
+                  title="Turn timeout limit"
                 >
-                  <Clock className={`w-3.5 h-3.5 ${turnSecondsRemaining <= 30 ? 'text-red-400 animate-spin' : 'text-amber-400'}`} />
+                  <Clock className={`w-3 h-3 ${turnSecondsRemaining <= 30 ? 'text-rose-400' : 'text-amber-400'}`} />
                   <span>
                     {Math.floor(turnSecondsRemaining / 60)}:{String(turnSecondsRemaining % 60).padStart(2, '0')}
                   </span>
@@ -627,75 +638,75 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
 
             {/* Piles and Central Action Row */}
             <div className="flex items-center justify-center gap-6 md:gap-10">
-              {/* Draw Pile (Clickable on turn) */}
+              {/* Draw Pile (Sharp tactile card stack) */}
               <div className="flex flex-col items-center">
                 <div
                   onClick={isMyTurn && !gameState.isPaused ? handleDrawCard : undefined}
-                  className={`relative cursor-pointer transition-all duration-200 ${
+                  className={`relative cursor-pointer transition-all ${
                     isMyTurn && !gameState.isPaused
-                      ? 'hover:scale-105 active:scale-95 ring-4 ring-amber-400/60 ring-offset-2 ring-offset-emerald-950 rounded-2xl'
-                      : 'cursor-not-allowed opacity-90'
+                      ? 'hover:scale-105 active:scale-95'
+                      : 'cursor-not-allowed opacity-85'
                   }`}
                   title={isMyTurn ? 'Click to Draw a Card' : 'Draw Pile'}
                 >
                   {/* Visual 3D Stack depth */}
-                  <div className="absolute top-1 left-1 w-20 md:w-24 h-28 md:h-36 rounded-2xl bg-neutral-900 border border-neutral-800 -z-10" />
-                  <div className="absolute top-2 left-2 w-20 md:w-24 h-28 md:h-36 rounded-2xl bg-neutral-900 border border-neutral-800 -z-20" />
+                  <div className="absolute top-1 left-1 w-20 md:w-24 h-28 md:h-36 bg-neutral-900 border-2 border-neutral-800 -z-10 shadow-[2px_2px_0px_#000]" />
+                  <div className="absolute top-2 left-2 w-20 md:w-24 h-28 md:h-36 bg-neutral-950 border-2 border-neutral-800 -z-20 shadow-[2px_2px_0px_#000]" />
 
-                  <CardView isFaceDown size="lg" className="shadow-2xl" />
+                  <CardView isFaceDown size="lg" className="shadow-[4px_4px_0px_#000]" />
 
                   {/* Draw Pile Count Badge */}
-                  <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-neutral-900 border border-neutral-700 text-[10px] md:text-xs font-bold text-neutral-200 whitespace-nowrap shadow-md">
-                    {gameState.drawPileCount} cards
+                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-neutral-950 border-2 border-neutral-700 text-[10px] font-mono font-bold text-neutral-200 whitespace-nowrap shadow-[2px_2px_0px_#000]">
+                    {gameState.drawPileCount} CARDS
                   </div>
 
                   {isMyTurn && !gameState.isPaused && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 hover:opacity-100 transition-opacity">
-                      <span className="font-black text-amber-300 text-xs md:text-sm uppercase tracking-wider drop-shadow-md">
-                        +1 Draw
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
+                      <span className="font-mono font-black text-amber-300 text-xs uppercase tracking-wider">
+                        +1 DRAW
                       </span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Active Color & Discard Pile */}
+              {/* Active Color & Discard Pile (Sharp Box) */}
               <div className="flex flex-col items-center">
                 <div className="relative">
-                  {/* Glowing color ring around top discard */}
+                  {/* Color frame */}
                   <div
-                    className={`absolute -inset-2.5 rounded-3xl border-4 ${
+                    className={`absolute -inset-2 border-2 ${
                       gameState.activeColor ? COLOR_BORDER_MAP[gameState.activeColor] : 'border-neutral-600'
-                    } shadow-2xl transition-all duration-300 pointer-events-none animate-pulse`}
+                    } transition-all duration-200 pointer-events-none`}
                   />
 
                   {gameState.topDiscard ? (
-                    <CardView card={gameState.topDiscard} size="lg" className="shadow-2xl rotate-2" />
+                    <CardView card={gameState.topDiscard} size="lg" className="shadow-[4px_4px_0px_#000]" />
                   ) : (
-                    <div className="w-24 h-36 rounded-2xl border-2 border-dashed border-neutral-700 flex items-center justify-center text-xs text-neutral-500">
-                      Discard
+                    <div className="w-24 h-36 border-2 border-dashed border-neutral-700 flex items-center justify-center text-xs font-mono text-neutral-500">
+                      DISCARD
                     </div>
                   )}
 
                   {/* Active Color Tag */}
                   {gameState.activeColor && (
                     <div
-                      className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full ${
+                      className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 ${
                         COLOR_BG_MAP[gameState.activeColor]
-                      } text-[10px] md:text-xs font-black uppercase tracking-wider shadow-lg border border-white/60 whitespace-nowrap`}
+                      } font-mono text-[10px] font-black uppercase tracking-wider border-2 border-black whitespace-nowrap shadow-[2px_2px_0px_#000]`}
                     >
-                      Color: {gameState.activeColor}
+                      COLOR: {gameState.activeColor}
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Interactive Turn Action Prompt / Drawn Card Options */}
+            {/* Interactive Turn Action Prompt / Drawn Card Options (Sharp Box) */}
             {isMyTurn && !gameState.isPaused && gameState.pendingDrawnCard && (
-              <div className="mt-4 p-3 rounded-2xl bg-neutral-900/95 border-2 border-amber-400 shadow-2xl flex flex-col sm:flex-row items-center gap-3 animate-fadeIn">
-                <span className="text-xs font-bold text-neutral-300">
-                  You drew a playable card!
+              <div className="mt-4 p-3 bg-neutral-900 border-2 border-amber-400 shadow-[4px_4px_0px_#000] flex flex-col sm:flex-row items-center gap-3 animate-fadeIn">
+                <span className="font-mono text-xs font-bold text-white uppercase">
+                  PLAY DRAWN CARD OR PASS?
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -706,15 +717,15 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                         socketClient.playCard(gameState.pendingDrawnCard!.id);
                       }
                     }}
-                    className="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xs shadow-md transition"
+                    className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 border-2 border-black text-black font-mono font-black text-xs uppercase shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition"
                   >
-                    Play Drawn Card
+                    PLAY CARD
                   </button>
                   <button
                     onClick={() => socketClient.passTurn()}
-                    className="px-4 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-bold text-xs border border-neutral-700 transition"
+                    className="px-3 py-1.5 bg-neutral-950 hover:bg-neutral-800 border-2 border-neutral-700 text-neutral-300 font-mono font-bold text-xs uppercase shadow-[2px_2px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] transition"
                   >
-                    Pass Turn
+                    PASS TURN
                   </button>
                 </div>
               </div>
@@ -733,22 +744,22 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                       soundService.play('click');
                       socketClient.catchUno();
                     }}
-                    className="px-4 py-2 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs md:text-sm shadow-xl border-2 border-amber-300 animate-bounce flex items-center gap-1.5"
+                    className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-mono font-black text-xs uppercase tracking-wider border-2 border-amber-300 shadow-[4px_4px_0px_#000] animate-bounce flex items-center gap-1.5"
                     title={`Catch ${gameState.canCatchUnoTarget.targetPlayerName} for forgetting to call UNO!`}
                   >
                     <AlertCircle className="w-4 h-4 text-amber-300" />
-                    CATCH UNO! ({gameState.canCatchUnoTarget.targetPlayerName})
+                    CATCH UNO! ({gameState.canCatchUnoTarget.targetPlayerName.toUpperCase()})
                   </button>
                 ) : (
-                  /* Quick Talk & Emote bar */
+                  /* Quick Talk & Emote bar (Sharp Boxes) */
                   <div className="flex flex-wrap items-center gap-1.5">
                     {/* Emote bar */}
-                    <div className="flex items-center gap-1 bg-neutral-900/90 p-1 rounded-2xl border border-neutral-800 shadow-md">
+                    <div className="flex items-center gap-1 bg-neutral-900 p-1 border-2 border-neutral-700 shadow-[2px_2px_0px_#000]">
                       {['🔥', '🤝', '😱', '😂', '🤔', 'GG'].map((emoji) => (
                         <button
                           key={emoji}
                           onClick={() => handleSendEmote(emoji)}
-                          className="px-1.5 h-7 flex items-center justify-center rounded-xl hover:bg-neutral-800 text-xs md:text-sm font-bold transition hover:scale-125"
+                          className="px-1.5 h-6 flex items-center justify-center hover:bg-neutral-800 text-xs font-mono font-bold transition hover:scale-110"
                           title={`Send ${emoji}`}
                         >
                           {emoji}
@@ -766,20 +777,20 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                           setChatInputText('');
                         }
                       }}
-                      className="hidden sm:flex items-center gap-1 bg-neutral-900/90 px-2 py-1 rounded-2xl border border-neutral-800 shadow-md"
+                      className="hidden sm:flex items-center gap-1 bg-neutral-900 px-2 py-1 border-2 border-neutral-700 shadow-[2px_2px_0px_#000]"
                     >
                       <input
                         type="text"
                         value={chatInputText}
                         onChange={(e) => setChatInputText(e.target.value)}
-                        placeholder="Type to talk..."
+                        placeholder="Type message..."
                         maxLength={60}
-                        className="bg-transparent text-xs text-white placeholder-neutral-500 focus:outline-none w-28 md:w-36"
+                        className="bg-transparent text-xs font-mono text-white placeholder-neutral-500 focus:outline-none w-28 md:w-36"
                       />
                       <button
                         type="submit"
                         disabled={!chatInputText.trim()}
-                        className="p-1 rounded-lg text-amber-400 hover:text-amber-300 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                        className="p-0.5 text-amber-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
                         title="Send Message"
                       >
                         <Send className="w-3.5 h-3.5" />
@@ -789,32 +800,32 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                 )}
               </div>
 
-              {/* Center / Right: Big Official UNO Button */}
+              {/* Center / Right: Big Official UNO Button (Sharp Box) */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
                     soundService.play('click');
                     socketClient.callUno();
                   }}
-                  className={`px-6 py-2.5 rounded-2xl font-black text-sm md:text-base tracking-wider shadow-2xl transition-all duration-200 flex items-center gap-2 border-2 ${
+                  className={`px-5 py-2 font-mono font-black text-xs md:text-sm tracking-wider uppercase shadow-[4px_4px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center gap-1.5 border-2 ${
                     me?.cardCount === 1 || me?.cardCount === 2
-                      ? 'bg-gradient-to-r from-red-600 via-amber-500 to-red-600 hover:from-red-500 hover:to-amber-400 text-white border-yellow-300 ring-4 ring-red-500/50 scale-105 animate-pulse'
+                      ? 'bg-red-600 hover:bg-red-500 text-white border-amber-300 ring-2 ring-red-500 animate-pulse'
                       : 'bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border-neutral-700'
                   }`}
                   title="Call UNO when you have 1 or 2 cards left!"
                 >
-                  <Flame className="w-5 h-5 text-amber-300" />
+                  <Flame className="w-4 h-4 text-amber-300 fill-current" />
                   <span>UNO!</span>
-                  {me?.calledUno && <Check className="w-4 h-4 text-emerald-400" />}
+                  {me?.calledUno && <Check className="w-3.5 h-3.5 text-emerald-400" />}
                 </button>
               </div>
             </div>
 
             {/* Hand Cards Fan Spread */}
-            <div className="w-full flex justify-center overflow-x-auto py-3 px-2 no-scrollbar">
+            <div className="w-full flex justify-center overflow-x-auto py-2 px-2 no-scrollbar">
               <div className="inline-flex items-end justify-center min-w-max pb-2">
                 {gameState.myHand.length === 0 ? (
-                  <div className="text-sm text-neutral-400 italic">No cards in hand.</div>
+                  <div className="font-mono text-xs text-neutral-400 italic">No cards in hand.</div>
                 ) : (
                   gameState.myHand.map((card, index) => {
                     const topDiscard = gameState.topDiscard;
@@ -830,14 +841,14 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                     );
 
                     const total = gameState.myHand.length;
-                    const spreadAngle = total > 1 ? Math.min(4, 30 / total) : 0;
+                    const spreadAngle = total > 1 ? Math.min(3.5, 28 / total) : 0;
                     const angle = (index - (total - 1) / 2) * spreadAngle;
                     const translateY = Math.abs(index - (total - 1) / 2) * 2;
 
                     return (
                       <div
                         key={card.id}
-                        className="-ml-4 sm:-ml-5 first:ml-0 transition-transform duration-200"
+                        className="-ml-3 sm:-ml-4 first:ml-0 transition-transform duration-150"
                         style={{
                           transform: `translateY(${translateY}px) rotate(${angle}deg)`,
                           zIndex: index,
@@ -857,18 +868,20 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
               </div>
             </div>
 
-            {/* Player Status Badge */}
-            <div className="flex items-center gap-3 text-xs text-neutral-400 mt-1">
+            {/* Player Status Badge (Sharp Box) */}
+            <div className="flex items-center gap-3 font-mono text-[11px] text-neutral-400 mt-0.5 bg-neutral-900 border border-neutral-800 px-3 py-1">
               <span className="font-bold text-white flex items-center gap-1">
-                Your Hand: <span className="text-amber-400 font-bold">{gameState.myHand.length} cards</span>
+                HAND: <strong className="text-amber-400">{gameState.myHand.length} CARDS</strong>
               </span>
               <span>•</span>
-              <span>Total Points: <strong className="text-white">{me?.totalScore || 0}</strong></span>
+              <span>
+                MATCH SCORE: <strong className="text-white">{me?.totalScore || 0} PTS</strong>
+              </span>
               {me?.calledUno && (
                 <>
                   <span>•</span>
                   <span className="text-amber-400 font-bold flex items-center gap-1">
-                    <Flame className="w-3.5 h-3.5" /> UNO Called!
+                    <Flame className="w-3 h-3 text-red-500 fill-current" /> UNO CALLED!
                   </span>
                 </>
               )}
@@ -877,22 +890,22 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
         </div>
       )}
 
-      {/* Action Logs Drawer Toggle (Bottom-Right) */}
+      {/* Action Logs Drawer Toggle (Sharp Box) */}
       <div className="fixed bottom-2 right-2 z-40">
         <button
           onClick={() => setShowLogs(!showLogs)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-700 text-xs font-bold text-neutral-300 shadow-xl backdrop-blur-md transition"
+          className="flex items-center gap-1.5 px-3 py-1 bg-neutral-900 hover:bg-neutral-800 border-2 border-neutral-700 font-mono text-xs font-bold text-neutral-300 shadow-[3px_3px_0px_#000] transition uppercase"
         >
           <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
-          <span>Game Log</span>
+          <span>GAME LOG</span>
           {showLogs ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
         </button>
 
         {showLogs && (
-          <div className="absolute bottom-10 right-0 w-80 md:w-96 rounded-2xl bg-neutral-950/95 border-2 border-neutral-800 p-3 shadow-2xl backdrop-blur-md max-h-64 overflow-y-auto space-y-1 text-xs text-neutral-300">
-            <div className="font-bold text-neutral-400 pb-1 mb-1 border-b border-neutral-800 flex justify-between">
-              <span>Game Action Log</span>
-              <span>{gameState.logs.length} events</span>
+          <div className="absolute bottom-9 right-0 w-80 md:w-96 bg-neutral-950 border-2 border-neutral-700 p-3 shadow-[5px_5px_0px_#000] max-h-64 overflow-y-auto space-y-1 font-mono text-xs text-neutral-300">
+            <div className="font-bold text-neutral-400 pb-1 mb-1 border-b border-neutral-800 flex justify-between uppercase">
+              <span>ACTION EVENTS</span>
+              <span>{gameState.logs.length} EVENTS</span>
             </div>
             {gameState.logs.length === 0 ? (
               <div className="text-neutral-500 italic py-2">No actions logged yet.</div>
@@ -900,7 +913,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
               [...gameState.logs].reverse().map((entry) => (
                 <div
                   key={entry.id}
-                  className={`py-1 border-b border-neutral-900 ${
+                  className={`py-0.5 border-b border-neutral-900 ${
                     entry.type === 'challenge'
                       ? 'text-amber-300 font-semibold'
                       : entry.type === 'uno'
@@ -924,82 +937,82 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
 
       {/* MODALS */}
 
-      {/* Paused Overlay */}
+      {/* Paused Overlay (Sharp Box) */}
       {gameState.isPaused && (
-        <div className="fixed inset-0 z-45 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fadeIn">
-          <div className="w-full max-w-sm rounded-3xl bg-neutral-900 border-2 border-amber-400 p-6 md:p-8 shadow-2xl text-white text-center">
-            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-400 text-amber-400 mx-auto mb-4 flex items-center justify-center">
-              <Pause className="w-9 h-9" />
+        <div className="fixed inset-0 z-45 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="w-full max-w-sm bg-neutral-900 border-2 border-amber-400 p-6 shadow-[6px_6px_0px_#000] text-white text-center">
+            <div className="w-12 h-12 bg-amber-400 border border-black text-black mx-auto mb-3 flex items-center justify-center">
+              <Pause className="w-6 h-6" />
             </div>
-            <h3 className="text-2xl font-black uppercase tracking-wider text-amber-400 mb-2">
-              Match Paused
+            <h3 className="font-mono text-xl font-black uppercase tracking-wider text-amber-400 mb-1">
+              MATCH PAUSED
             </h3>
-            <p className="text-xs md:text-sm text-neutral-300 mb-6">
-              Paused by <strong className="text-white">{gameState.pausedBy || 'Player'}</strong>. Turns and card actions are temporarily frozen.
+            <p className="font-mono text-xs text-neutral-300 mb-5">
+              Paused by <strong className="text-white">{gameState.pausedBy || 'Player'}</strong>. Turns and card actions are frozen.
             </p>
             <button
               onClick={() => {
                 soundService.play('click');
                 socketClient.resumeMatch();
               }}
-              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-black text-sm uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2"
+              className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 border-2 border-black text-black font-mono font-black text-xs uppercase tracking-wider shadow-[4px_4px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition flex items-center justify-center gap-2"
             >
               <Play className="w-4 h-4 fill-current" />
-              <span>Resume Game</span>
+              <span>RESUME GAME</span>
             </button>
           </div>
         </div>
       )}
 
-      {/* Abort Confirmation Dialog */}
+      {/* Abort Confirmation Dialog (Sharp Box) */}
       {showAbortConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="w-full max-w-md rounded-3xl bg-neutral-900 border-2 border-red-500/80 p-6 md:p-8 shadow-2xl text-white text-center">
-            <div className="w-14 h-14 rounded-2xl bg-red-500/20 border border-red-500 text-red-400 mx-auto mb-4 flex items-center justify-center">
-              <StopCircle className="w-8 h-8" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="w-full max-w-md bg-neutral-900 border-2 border-rose-600 p-6 shadow-[6px_6px_0px_#000] text-white text-center">
+            <div className="w-12 h-12 bg-rose-950 border-2 border-rose-600 text-rose-400 mx-auto mb-3 flex items-center justify-center">
+              <StopCircle className="w-6 h-6" />
             </div>
-            <h3 className="text-xl md:text-2xl font-black uppercase tracking-wider text-red-400 mb-2">
-              Abort Match?
+            <h3 className="font-mono text-xl font-black uppercase tracking-wider text-rose-400 mb-1">
+              ABORT MATCH?
             </h3>
-            <p className="text-xs md:text-sm text-neutral-300 mb-6">
-              Are you sure you want to abort the match? The game will immediately end for all players and everyone will return to the lobby.
+            <p className="font-mono text-xs text-neutral-300 mb-5">
+              Are you sure you want to abort the match? The game will immediately end for all players and return to the lobby.
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-2.5">
               <button
                 onClick={() => setShowAbortConfirm(false)}
-                className="flex-1 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-bold text-xs md:text-sm transition"
+                className="flex-1 py-2.5 bg-neutral-950 hover:bg-neutral-800 border-2 border-neutral-700 text-neutral-300 font-mono font-bold text-xs uppercase"
               >
-                Cancel
+                CANCEL
               </button>
               <button
                 onClick={handleConfirmAbort}
-                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs md:text-sm shadow-lg transition"
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 border-2 border-black text-white font-mono font-black text-xs uppercase tracking-wider shadow-[3px_3px_0px_#000]"
               >
-                Yes, Abort Match
+                YES, ABORT
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Match Aborted Banner / Dialog */}
+      {/* Match Aborted Banner / Dialog (Sharp Box) */}
       {gameState.status === 'aborted' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn">
-          <div className="w-full max-w-md rounded-3xl bg-neutral-900 border-2 border-amber-500/80 p-6 md:p-8 shadow-2xl text-white text-center">
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500 text-amber-400 mx-auto mb-4 flex items-center justify-center">
-              <AlertTriangle className="w-8 h-8" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="w-full max-w-md bg-neutral-900 border-2 border-amber-400 p-6 shadow-[6px_6px_0px_#000] text-white text-center">
+            <div className="w-12 h-12 bg-amber-400 border border-black text-black mx-auto mb-3 flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6" />
             </div>
-            <h3 className="text-2xl font-black uppercase tracking-wider text-amber-400 mb-2">
-              Match Aborted
+            <h3 className="font-mono text-xl font-black uppercase tracking-wider text-amber-400 mb-1">
+              MATCH ABORTED
             </h3>
-            <p className="text-sm text-neutral-200 mb-2">
+            <p className="font-mono text-xs text-neutral-200 mb-1">
               {gameState.abortInfo?.abortedBy ? (
                 <>Aborted by <strong className="text-white">{gameState.abortInfo.abortedBy}</strong></>
               ) : (
                 'The match was ended early.'
               )}
             </p>
-            <p className="text-xs text-neutral-400 mb-6">
+            <p className="font-mono text-xs text-neutral-400 mb-5">
               {gameState.abortInfo?.reason || 'Player disconnected or requested to abort.'}
             </p>
             <button
@@ -1007,10 +1020,10 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
                 soundService.play('click');
                 onLeaveRoom();
               }}
-              className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-sm uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2"
+              className="w-full py-3 bg-amber-400 hover:bg-amber-300 border-2 border-black text-black font-mono font-black text-xs uppercase tracking-wider shadow-[4px_4px_0px_#000] flex items-center justify-center gap-2"
             >
               <Home className="w-4 h-4" />
-              <span>Return to Lobby</span>
+              <span>RETURN TO LOBBY</span>
             </button>
           </div>
         </div>
@@ -1020,7 +1033,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
       <ColorPickerModal
         isOpen={pendingWildCard !== null}
         onSelectColor={handleSelectColor}
-        title={pendingWildCard?.value === 'wild4' ? 'Wild Draw Four Color' : 'Wild Color'}
+        title={pendingWildCard?.value === 'wild4' ? 'WILD +4 COLOR' : 'WILD COLOR'}
       />
 
       {/* Challenge Modal */}
@@ -1031,7 +1044,7 @@ export const GameTable: React.FC<GameTableProps> = ({ gameState, onLeaveRoom }) 
         />
       )}
 
-      {/* Scoreboard Modal (Includes Back to Home Page button) */}
+      {/* Scoreboard Modal */}
       <ScoreboardModal
         gameState={gameState}
         onNextRound={() => socketClient.nextRound()}

@@ -17,6 +17,7 @@ import {
   hasColorMatch,
   calculateHandScore,
 } from './deck.ts';
+import { accountStore } from '../db/accountStore.ts';
 
 export class UnoRoom {
   public roomCode: string;
@@ -76,7 +77,13 @@ export class UnoRoom {
     }
   }
 
-  public addPlayer(id: string, sessionToken: string, name: string, avatar: string): boolean {
+  public addPlayer(
+    id: string,
+    sessionToken: string,
+    name: string,
+    avatar: string,
+    accountUsername?: string
+  ): boolean {
     if (this.players.length >= this.settings.maxPlayers && !this.players.some((p) => p.sessionToken === sessionToken)) {
       return false;
     }
@@ -88,6 +95,7 @@ export class UnoRoom {
       existing.isConnected = true;
       existing.name = name || existing.name;
       existing.avatar = avatar || existing.avatar;
+      if (accountUsername) existing.accountUsername = accountUsername;
       if (this.disconnectedPlayer && this.disconnectedPlayer.id === existing.id) {
         this.disconnectedPlayer = null;
       }
@@ -112,6 +120,7 @@ export class UnoRoom {
       score: 0,
       totalScore: 0,
       roundWins: 0,
+      accountUsername,
     };
 
     this.players.push(newPlayer);
@@ -603,6 +612,11 @@ export class UnoRoom {
       this.unoVulnerablePlayerId = null;
     }
 
+    const accountName = player.accountUsername || player.name;
+    if (accountName) {
+      accountStore.recordUnoShout(accountName);
+    }
+
     this.addLog('uno', `${player.name} SHOUTED "UNO!" 🔥`, { playerId: player.id, playerName: player.name });
     return { success: true };
   }
@@ -658,6 +672,12 @@ export class UnoRoom {
     winner.score = roundPoints;
     winner.totalScore += roundPoints;
 
+    // Persist and add score to the winner's account immediately!
+    const winnerAccountKey = winner.accountUsername || winner.name;
+    if (winnerAccountKey && roundPoints > 0) {
+      accountStore.addRoundScore(winnerAccountKey, roundPoints);
+    }
+
     this.roundWinner = {
       playerId: winner.id,
       playerName: winner.name,
@@ -680,6 +700,11 @@ export class UnoRoom {
         playerName: winner.name,
         finalScore: winner.totalScore,
       };
+
+      // Record cumulative match stats for all player accounts
+      const allPlayerAccountNames = this.players.map((p) => p.accountUsername || p.name).filter(Boolean);
+      accountStore.recordMatchOutcome(winnerAccountKey, allPlayerAccountNames, 50);
+
       this.addLog('round_win', `👑 ${winner.name} HAS WON THE MATCH with ${winner.totalScore} total points!`, {
         playerId: winner.id,
         playerName: winner.name,
@@ -713,6 +738,7 @@ export class UnoRoom {
       score: p.score,
       totalScore: p.totalScore,
       roundWins: p.roundWins,
+      accountUsername: p.accountUsername,
     }));
 
     const topDiscard = this.discardPile.length > 0 ? this.discardPile[this.discardPile.length - 1] : null;

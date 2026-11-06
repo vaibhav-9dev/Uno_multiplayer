@@ -149,11 +149,11 @@ export default function App() {
     <div className="min-h-screen bg-neutral-950 font-sans text-white antialiased">
       {/* Global Notification Toast */}
       {notification && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl backdrop-blur-md border animate-bounce flex items-center gap-3 text-sm font-bold bg-neutral-900/95 border-amber-500/80 text-amber-300">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 shadow-[4px_4px_0px_#000] border-2 border-amber-400 animate-bounce flex items-center gap-3 text-xs md:text-sm font-mono font-bold bg-neutral-900 text-amber-300">
           <span>{notification.message}</span>
           <button
             onClick={() => setNotification(null)}
-            className="text-neutral-400 hover:text-white text-xs ml-2"
+            className="text-neutral-400 hover:text-white text-xs ml-2 border border-neutral-700 px-1"
           >
             ✕
           </button>

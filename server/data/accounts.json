@@ -1,0 +1,58 @@
+[
+  {
+    "username": "ace_player",
+    "displayName": "AcePlayer",
+    "avatar": "dragon",
+    "totalScore": 1420,
+    "matchesPlayed": 18,
+    "matchesWon": 9,
+    "roundsWon": 24,
+    "unoShouts": 19,
+    "createdAt": 1793364691897,
+    "lastActiveAt": 1793965891897,
+    "salt": "4c6e6c481066ee6bd4d2ba2ba713f186",
+    "passwordHash": "797f6e70ceb56bff9bef3efc805e57e32bf4f3bb91299388b9878f5bebddb6c4"
+  },
+  {
+    "username": "wild_card_99",
+    "displayName": "WildCard99",
+    "avatar": "tiger",
+    "totalScore": 980,
+    "matchesPlayed": 14,
+    "matchesWon": 6,
+    "roundsWon": 16,
+    "unoShouts": 12,
+    "createdAt": 1793537491897,
+    "lastActiveAt": 1793962291897,
+    "salt": "7b1217860c8c0d186f26d5e8b3b7a583",
+    "passwordHash": "744d27b9c5ffe7f9562861db07fe0a1b42da0c29fefb9eb0527f0b5ccb8d4ae2"
+  },
+  {
+    "username": "uno_master",
+    "displayName": "UnoMaster",
+    "avatar": "lion",
+    "totalScore": 650,
+    "matchesPlayed": 10,
+    "matchesWon": 4,
+    "roundsWon": 11,
+    "unoShouts": 8,
+    "createdAt": 1793710291897,
+    "lastActiveAt": 1793955091897,
+    "salt": "f239382cdf1679a58ab40686a8f3f159",
+    "passwordHash": "365b640fb991bd520b43134556274696bcab76876747f9e622ba77260c698820"
+  },
+  {
+    "username": "pro_gamer",
+    "displayName": "pro_gamer",
+    "passwordHash": "5e27eac389081cca5e7d188d7ca24c58634b35d07f4c1cd81b6e9e571f18efba",
+    "salt": "9d9c1d3adf09fdf42b316b61edbbe042",
+    "avatar": "spark",
+    "totalScore": 0,
+    "matchesPlayed": 0,
+    "matchesWon": 0,
+    "roundsWon": 0,
+    "unoShouts": 0,
+    "createdAt": 1793969498025,
+    "lastActiveAt": 1793969501686
+  }
+]
